@@ -92,23 +92,22 @@ class MongobarScript(object):
                 self.mb.logger.addHandler(file_handler)
                 self.mb.config.logger.addHandler(file_handler)
 
-            except Exception as e:
-                # TODO: custom exception
-                raise
+            except (FileNotFoundError, PermissionError) as e:
+                self.logger.error(e)
 
     def run(self):
         try:
             getattr(self, self.args.action.replace("-", "_"))()
-
         except mongobar.exceptions.BaseError as e:
-            print(e)
+            self.parser.exit(self.color_error(str(e)))
+
 
     # parsers
 
     def create_parser_main(self):
 
         parser = argparse.ArgumentParser("mongobar",
-            description="MongoBAR 🍫\nMongoDB Backup and Restore manager",
+            description="mongobar 🍫\nMongoDB Backup and Restore manager",
             formatter_class=argparse.RawTextHelpFormatter
         )
 
@@ -171,13 +170,13 @@ class MongobarScript(object):
 
     def create_parser_connection(self, parent_parser):
         parser = parent_parser.add_parser("connection",
-            help="Set the current connection",
-            description="Set the current connection"
+            help="Get or set the current connection",
+            description="Get or set the current connection"
         )
 
         # connection
         parser.add_argument("name",
-            help="The connection name",
+            help="Name to set as the current connection",
             nargs="?"
         )
 
@@ -505,8 +504,8 @@ class MongobarScript(object):
 
     def create_parser_hosts(self, parent_parser):
         parser = parent_parser.add_parser("hosts",
-            help="List hosts",
-            description="List hosts"
+            help="List host directories",
+            description="List host directories"
         )
 
         # output group
@@ -654,7 +653,7 @@ class MongobarScript(object):
                 session_data = json.loads(file_handle.read())
 
         except (FileNotFoundError, PermissionError) as e:
-            # self.logger.debug(e)
+            self.logger.debug(e)
             return None
 
         return session_data
@@ -678,10 +677,8 @@ class MongobarScript(object):
 
         data = [["Name", "Date & Time"]]
 
-        quicksave = True if "quicksave" in metadata else False
-
         data.append([
-            self.color_backup_name(name, quicksave),
+            self.format_backup_name(name),
             self.format_date(metadata["date"])
         ])
 
@@ -750,9 +747,14 @@ class MongobarScript(object):
 
     # format strings
 
-    def color_backup_name(self, name, quicksave=False):
-        color = colorama.Fore.CYAN if not quicksave else colorama.Fore.YELLOW
-        return color + name + colorama.Style.RESET_ALL
+    def format_backup_name(self, name):
+        name = colorama.Fore.CYAN + name + colorama.Style.RESET_ALL
+        return name
+
+    def format_connection_name(self, name):
+        name = "[{}]".format(name)
+        name = colorama.Fore.MAGENTA + name + colorama.Style.RESET_ALL
+        return name
 
     def color_warning(self, string):
         return colorama.Fore.YELLOW + string + colorama.Style.RESET_ALL
@@ -771,17 +773,21 @@ class MongobarScript(object):
     def connection(self):
 
         if self.args.name is None:
-            print(self.mb.config.connection.name)
+            msg = "Current connection: {}"
+            connection_name = self.format_connection_name(self.mb.config.connection.name)
+            print(msg.format(connection_name))
 
         else:
             connections = [ k for k in self.mb.config.config["connections"].keys() ]
 
             if self.args.name not in connections:
-                self.logger.error(self.color_error("Connection '{}' not set in config".format(self.args.name)))
+                self.logger.error(self.color_error("Connection not set in config: '{}'".format(self.args.name)))
 
             else:
                 self.write_session({"connection": self.args.name})
-                self.logger.info("Connection set to '{}'".format(self.args.name))
+                msg = "Current connection: {}"
+                connection_name = self.format_connection_name(self.args.name)
+                print(msg.format(connection_name))
 
     def backup(self):
 
@@ -949,7 +955,7 @@ class MongobarScript(object):
         # ~~~
 
         backup_path = os.path.join(
-            self.mb.get_host_directory(),
+            self.mb.config.connection.directory,
             self.args.backup
         )
 
@@ -1027,7 +1033,9 @@ class MongobarScript(object):
         # ~~~
 
         metadata = self.mb.generate_metadata()
-        title = " Server [{}] ".format(self.mb.config.connection.name)
+
+        connection_name = self.format_connection_name(self.mb.config.connection.name)
+        title = " Server {} ".format(connection_name)
 
         print()
         print(self.format_metadata_metrics_table(metadata, title=title))
@@ -1071,8 +1079,7 @@ class MongobarScript(object):
                 backups.append(metadata)
 
                 # inject name
-                quicksave = True if "quicksave" in metadata else False
-                metadata["name"] = self.color_backup_name(backup, quicksave)
+                metadata["name"] = self.format_backup_name(backup)
 
                 # database count
                 metadata["databases_count"] = len(metadata["databases"])
@@ -1108,7 +1115,8 @@ class MongobarScript(object):
                     self.format_metadata_message(backup["message"], 32, True)
                 ])
 
-            title = " Backups [{}] ".format(self.mb.config.connection.name)
+            connection_name = self.format_connection_name(self.mb.config.connection.name)
+            title = " Backups {} ".format(connection_name)
 
             table = terminaltables.SingleTable(table_data, title=title)
 
@@ -1137,6 +1145,7 @@ class MongobarScript(object):
             for host in hosts:
 
                 connection_name = self.mb.config.connections.get(socket=host[0]).name or ""
+                connection_name = self.format_connection_name(connection_name)
                 row = [host[0], connection_name, host[1]]
 
                 # limit
@@ -1176,7 +1185,10 @@ class MongobarScript(object):
 
                 connection_data.append([key.ljust(9), value])
 
-            connection_table = terminaltables.SingleTable(connection_data, " {} ".format(name))
+            connection_name = self.format_connection_name(name)
+            title = " {} ".format(connection_name)
+
+            connection_table = terminaltables.SingleTable(connection_data, title)
             connection_table.inner_heading_row_border = False
             print(connection_table.table)
 
