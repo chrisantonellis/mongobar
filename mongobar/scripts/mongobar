@@ -1,0 +1,1186 @@
+#!/Users/CHR15/.pyenv/shims/python
+
+import os
+import sys
+import argparse
+import terminaltables
+import textwrap
+import dateutil.parser
+import colorama
+import subprocess
+import copy
+import logging
+import tempfile
+import json
+
+import mongobar
+
+
+class MongobarScript(object):
+
+    default_config_file = "~/.mongobar_config.json"
+
+    log_format = "[%(asctime)s][%(levelname)-8s] %(message)s"
+    log_time_format = "%Y-%m-%d %H:%M:%S"
+
+    def __init__(self):
+
+        # mongobar
+        self.mb = mongobar.Mongobar()
+
+        # parsers
+        self.parser, subparsers = self.create_parser_main()
+
+        self.create_parser_connection(subparsers)
+        self.create_parser_backup(subparsers)
+        self.create_parser_restore(subparsers)
+        self.create_parser_remove(subparsers)
+        self.create_parser_backups(subparsers)
+        self.create_parser_hosts(subparsers)
+        self.create_parser_meta(subparsers)
+        self.create_parser_server(subparsers)
+        self.create_parser_config(subparsers)
+
+        # session
+        session = self.read_session()
+        if session is not None:
+            self.mb.config.connection = session["connection"]
+
+        # parse args
+        self.args = self.parser.parse_args()
+
+
+        # config
+        self.mb.config.add_file(self.args.config or self.default_config_file)
+
+        args = {}
+        if self.args.root_directory is not None:
+            args["root_directory"] = self.args.root_directory
+        if self.args.log_level is not None:
+            args["log_level"] = self.args.log_level
+        if self.args.log_file is not None:
+            args["log_file"] = self.args.log_file
+
+        if args:
+            self.mb.config.add(args)
+
+
+        # logging
+        self.logger = logging.getLogger("mongobar_script")
+
+        # level
+        self.logger.setLevel(self.mb.config.log_level)
+        self.mb.logger.setLevel(self.mb.config.log_level)
+        self.mb.config.logger.setLevel(self.mb.config.log_level)
+
+        # stream handler
+        stream_handler = logging.StreamHandler(sys.stdout)
+        stream_handler.setLevel(self.mb.config.log_level)
+
+        self.logger.addHandler(stream_handler)
+        self.mb.logger.addHandler(stream_handler)
+        self.mb.config.logger.addHandler(stream_handler)
+
+        # file handler
+        if self.mb.config.log_file is not None:
+            try:
+                file_handler = logging.FileHandler(os.path.expanduser(self.mb.config.log_file))
+                file_handler.setFormatter(logging.Formatter(self.log_format))
+                file_handler.setLevel(self.mb.config.log_level)
+
+                self.logger.addHandler(file_handler)
+                self.mb.logger.addHandler(file_handler)
+                self.mb.config.logger.addHandler(file_handler)
+
+            except Exception as e:
+                # TODO: custom exception
+                raise
+
+    def run(self):
+        try:
+            getattr(self, self.args.action.replace("-", "_"))()
+
+        except mongobar.exceptions.BaseError as e:
+            print(e)
+
+    # parsers
+
+    def create_parser_main(self):
+
+        parser = argparse.ArgumentParser("mongobar",
+            description="MongoBAR 🍫\nMongoDB Backup and Restore manager",
+            formatter_class=argparse.RawTextHelpFormatter
+        )
+
+        # version
+        parser.add_argument("-v", "--version",
+            action="version",
+            version=mongobar.__version__,
+            help="Show the version number"
+        )
+
+
+        # configuration group
+        configuration_group = parser.add_argument_group("configuration arguments")
+
+        # root directory
+        configuration_group.add_argument("--root",
+            dest="root_directory",
+            metavar="ROOT",
+            help="The root directory"
+        )
+
+        # configuration file
+        configuration_group.add_argument("--config",
+            help="Path to the configuration file"
+        )
+
+        # logging group
+        logging_group = parser.add_argument_group("logging arguments")
+
+        # loglevel
+        logging_group.add_argument("--loglevel",
+            dest="log_level",
+            metavar="LOGLEVEL",
+            choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+            help="The log level"
+        )
+
+        # # quiet
+        # parser.add_argument("--quiet",
+        #     dest="quiet",
+        #     action="store_true"
+        # )
+
+        # logfile
+        logging_group.add_argument("--logfile",
+            dest="log_file",
+            metavar="LOGFILE",
+            help="Path to the log file"
+        )
+
+        # subparsers
+        subparsers = parser.add_subparsers(
+            dest="action",
+            metavar="ACTION",
+            title="action argument"
+        )
+        subparsers.required = True
+
+        return parser, subparsers
+
+    def create_parser_connection(self, parent_parser):
+        parser = parent_parser.add_parser("connection",
+            help="Set the current connection",
+            description="Set the current connection"
+        )
+
+        # connection
+        parser.add_argument("name",
+            help="The connection name",
+            nargs="?"
+        )
+
+        return parser
+
+    def create_parser_backup(self, parent_parser):
+        parser = parent_parser.add_parser("backup",
+            help="Create a new backup",
+            description="Create a new backup"
+        )
+
+        # message
+        parser.add_argument("-m",
+            dest="message",
+            metavar="MESSAGE",
+            nargs="?",
+            default="",
+            help="A message to save with the backup"
+        )
+
+        # output group
+        output_group = parser.add_argument_group(
+            "output arguments"
+        )
+
+        # force
+        output_group.add_argument("-f", "--force",
+            dest="force",
+            action="store_true",
+            help="Skip confirmation prompt"
+        )
+
+        # target group
+        target_group = parser.add_argument_group(
+            "target arguments"
+        )
+
+        # connection
+        target_group.add_argument("-c",
+            dest="connection",
+            metavar="CONNECTION",
+            help="The config connection to use"
+        )
+
+        # database
+        target_group.add_argument("-d",
+            dest="databases",
+            metavar="DATABASE",
+            action="append",
+            help="The database(s) to target"
+        )
+
+        # collection
+        target_group.add_argument("--col",
+            dest="collections",
+            metavar="COLLECTION",
+            action="append",
+            help="The collection(s) to target"
+        )
+
+        # host
+        target_group.add_argument("--host",
+            dest="host",
+            metavar="HOST",
+            help="The host to target"
+        )
+
+        # port
+        target_group.add_argument("--port",
+            dest="port",
+            metavar="PORT",
+            help="The port to target"
+        )
+
+        # authentication group
+        authentication_group = parser.add_argument_group(
+            "authentication arguments"
+        )
+
+        # username
+        authentication_group.add_argument("--user",
+            dest="username",
+            metavar="USER",
+            help="Authentication username"
+        )
+
+        # password
+        authentication_group.add_argument("--pass",
+            dest="password",
+            metavar="PASS",
+            help="Authentication password"
+        )
+
+        # authentication database
+        authentication_group.add_argument("--authdb",
+            dest="authdb",
+            metavar="AUTHDB",
+            help="Authentication database"
+        )
+
+        return parser
+
+    def create_parser_restore(self, parent_parser):
+        parser = parent_parser.add_parser("restore",
+            help="Restore from a backup",
+            description="Restore from a backup"
+        )
+
+        # output group
+        output_group = parser.add_argument_group(
+            "output arguments"
+        )
+
+        # force
+        output_group.add_argument("-f", "--force",
+            dest="force",
+            action="store_true",
+            help="Skip confirmation prompt"
+        )
+
+        # source target group
+        source_target_group = parser.add_argument_group(
+            "source target arguments"
+        )
+
+        # connection
+        source_target_group.add_argument("-c",
+            dest="connection",
+            metavar="CONN",
+            help="The config connection to use"
+        )
+
+        # source database
+        source_target_group.add_argument("-d",
+            dest="databases",
+            metavar="DATABASE",
+            action="append",
+            help="The source database(s) to target"
+        )
+
+        # source collection
+        source_target_group.add_argument("--col",
+            dest="collections",
+            metavar="COLLECTION",
+            action="append",
+            help="The source collection(s) to target"
+        )
+
+        # source host
+        source_target_group.add_argument("--host",
+            dest="host",
+            metavar="HOST",
+            help="The source host to target"
+        )
+
+        # source port
+        source_target_group.add_argument("--port",
+            dest="port",
+            metavar="PORT",
+            help="The source port to target"
+        )
+
+        # destination target group
+        destination_target_group = parser.add_argument_group(
+            "destination target arguments"
+        )
+
+        # destination connection
+        destination_target_group.add_argument("-dc",
+            dest="destination_connection",
+            metavar="DCONN",
+            help="The destination config connection to use"
+        )
+
+        # destination database
+        destination_target_group.add_argument("-dd",
+            dest="destination_databases",
+            metavar="DDATABASE",
+            action="append",
+            help="The destination databasee to target"
+        )
+
+        # destination host
+        destination_target_group.add_argument("--dhost",
+            dest="destination_host",
+            metavar="DHOST",
+            help="The destination host to target"
+        )
+
+        # destiantion port
+        destination_target_group.add_argument("--dport",
+            dest="destination_port",
+            metavar="DPORT",
+            help="The destination port to target"
+        )
+
+        # destination authentication group
+        destination_authentication_group = parser.add_argument_group(
+            "destination authentication arguments"
+        )
+
+        # destination username
+        destination_authentication_group.add_argument("--duser",
+            dest="destination_username",
+            metavar="DUSER",
+            help="Destination authentication username"
+        )
+
+        # destination password
+        destination_authentication_group.add_argument("--dpass",
+            dest="destination_password",
+            metavar="DPASS",
+            help="Destination authentication password"
+        )
+
+        # destination authdb
+        destination_authentication_group.add_argument("--dauthdb",
+            dest="destination_authdb",
+            metavar="DAUTHDB",
+            help="Destination authentication database"
+        )
+
+        # backup
+        parser.add_argument("backup")
+
+        return parser
+
+    def create_parser_remove(self, parent_parser):
+        parser = parent_parser.add_parser("remove",
+            help="Remove a backup",
+            description="Remove a backup"
+        )
+
+        # output group
+        output_group = parser.add_argument_group(
+            "output arguments"
+        )
+
+        # force
+        output_group.add_argument("-f", "--force",
+            dest="force",
+            action="store_true",
+            help="Skip confirmation prompt"
+        )
+
+        # target group
+        target_group = parser.add_argument_group(
+            "target arguments"
+        )
+
+        # connection
+        target_group.add_argument("-c",
+            dest="connection",
+            metavar="CONNECTION",
+            help="The config connection to use"
+        )
+
+        # source host
+        target_group.add_argument("--host",
+            dest="host",
+            metavar="HOST",
+            help="The host to target"
+        )
+
+        # source port
+        target_group.add_argument("--port",
+            dest="port",
+            metavar="PORT",
+            help="The port to target"
+        )
+
+        # backup
+        parser.add_argument("backup",
+            help="The backup to remove"
+        )
+
+        return parser
+
+    def create_parser_backups(self, parent_parser):
+        parser = parent_parser.add_parser("backups",
+            help="List backups",
+            description="List backups"
+        )
+
+        # output group
+        output_group = parser.add_argument_group(
+            "output arguments"
+        )
+
+        # limit
+        output_group.add_argument("-l",
+            type=int,
+            dest="limit",
+            metavar="LIMIT",
+            help="Limit output to LIMIT rows"
+        )
+
+        # target group
+        target_group = parser.add_argument_group(
+            "target arguments"
+        )
+
+        # connection
+        target_group.add_argument("-c",
+            dest="connection",
+            metavar="CONNECTION",
+            help="The config connection to use"
+        )
+
+        # source host
+        target_group.add_argument("--host",
+            dest="host",
+            metavar="HOST",
+            help="The host to target"
+        )
+
+        # source port
+        target_group.add_argument("--port",
+            dest="port",
+            metavar="PORT",
+            help="The port to target"
+        )
+
+        return parser
+
+    def create_parser_hosts(self, parent_parser):
+        parser = parent_parser.add_parser("hosts",
+            help="List hosts",
+            description="List hosts"
+        )
+
+        # output group
+        output_group = parser.add_argument_group(
+            "output arguments"
+        )
+
+        # limit
+        output_group.add_argument("-l",
+            type=int,
+            dest="limit",
+            metavar="LIMIT",
+            help="Limit output to LIMIT rows"
+        )
+
+        return parser
+
+    def create_parser_meta(self, parent_parser):
+        parser = parent_parser.add_parser("meta",
+            help="View metadata for backup",
+            description="View metadata for backup"
+        )
+
+        # source backup
+        parser.add_argument("backup",
+            help="The backup to view metadata for"
+        )
+
+        # target group
+        target_group = parser.add_argument_group(
+            "target arguments"
+        )
+
+        # connection
+        target_group.add_argument("-c",
+            dest="connection",
+            metavar="CONNECTION",
+            help="The config connection to use"
+        )
+
+        # host
+        target_group.add_argument("--host",
+            dest="host",
+            metavar="HOST",
+            help="The host to target"
+        )
+
+        # port
+        target_group.add_argument("--port",
+            dest="port",
+            metavar="PORT",
+            help="The port to target"
+        )
+
+        return parser
+
+    def create_parser_server(self, parent_parser):
+        parser = parent_parser.add_parser("server",
+            help="View metadata for server",
+            description="View metadata for server"
+        )
+
+        # target group
+        target_group = parser.add_argument_group(
+            "target arguments"
+        )
+
+        # connection
+        target_group.add_argument("-c",
+            dest="connection",
+            metavar="CONNECTION",
+            help="The config connection to use"
+        )
+
+        # source host
+        target_group.add_argument("--host",
+            dest="host",
+            metavar="HOST",
+            help="The host to target"
+        )
+
+        # source port
+        target_group.add_argument("--port",
+            dest="port",
+            metavar="PORT",
+            help="The port to target"
+        )
+
+        # authentication group
+        authentication_group = parser.add_argument_group(
+            "authentication arguments"
+        )
+
+        # username
+        authentication_group.add_argument("--user",
+            dest="username",
+            metavar="USER",
+            help="Authentication username"
+        )
+
+        # password
+        authentication_group.add_argument("--pass",
+            dest="password",
+            metavar="PASS",
+            help="Authentication password"
+        )
+
+        # authentication database
+        authentication_group.add_argument("--authdb",
+            dest="authdb",
+            metavar="AUTHDB",
+            help="Authentication database"
+        )
+
+        return parser
+
+    def create_parser_config(self, parent_parser):
+        parser = parent_parser.add_parser("config",
+            help="View configuration data",
+            description="View configuration data"
+        )
+
+    # input
+
+    def capture_bool_input(self):
+        if input("Are you sure you want to continue? [y/n]: ")[:1].upper() != "Y":
+            self.parser.exit()
+
+        return True
+
+    def capture_multiline_input(self):
+        with tempfile.NamedTemporaryFile(suffix=".tmp") as file_handle:
+            file_handle.flush()
+            subprocess.call([os.environ.get("EDITOR", "nano"), file_handle.name])
+            file_handle.seek(0)
+            return file_handle.read()
+
+    # session
+
+    def read_session(self):
+        session_file = os.path.expanduser("~/.mongobar_session.json")
+
+        try:
+            with open(session_file) as file_handle:
+                session_data = json.loads(file_handle.read())
+
+        except (FileNotFoundError, PermissionError) as e:
+            # self.logger.debug(e)
+            return None
+
+        return session_data
+
+    def write_session(self, data):
+        session_file = os.path.expanduser("~/.mongobar_session.json")
+
+        try:
+            with open(session_file, "w+") as file_handle:
+                file_handle.write(json.dumps(data))
+
+        except (FileNotFoundError, PermissionError) as e:
+            self.logger.error(e)
+            return None
+
+        return data
+
+    # format tables
+
+    def format_metadata_title_table(self, name, metadata):
+
+        data = [["Name", "Date & Time"]]
+
+        quicksave = True if "quicksave" in metadata else False
+
+        data.append([
+            self.color_backup_name(name, quicksave),
+            self.format_date(metadata["date"])
+        ])
+
+        table = terminaltables.SingleTable(data)
+
+        return table.table
+
+    def format_metadata_metrics_table(self, metadata, databases=None, collections=None, title=None):
+
+        data = [["Databases", "Collections", "Documents"]]
+
+        for i, database in enumerate(metadata["databases"]):
+            if not databases or database["name"] in databases:
+                for j, collection in enumerate(database["collections"]):
+                    if not collections or collection["name"] in collections:
+                        data.append([
+                            database["name"] if j == 0 else "",
+                            collection["name"],
+                            collection["document_count"]
+                        ])
+
+        table = terminaltables.SingleTable(data, title)
+
+        table.justify_columns[2] = "right"
+
+        return table.table
+
+    def format_metadata_message_table(self, message=None):
+
+        data = [["Message"], [self.format_metadata_message(message)]]
+
+        table = terminaltables.SingleTable(data)
+
+        return table.table
+
+    def format_connection_table(self):
+
+        data = [
+            ["Name", "Host", "Port", "Auth"],
+            [
+                self.args.connection,
+                self.mb.get_connection()["host"],
+                self.mb.get_connection()["port"],
+                "Disabled"
+            ]
+        ]
+
+        table = terminaltables.SingleTable(data, " Current Connection ")
+
+        return table.table
+
+    def format_metadata_message(self, message=None, width=None, first_line=False):
+        if message is None:
+            return ""
+
+        if width is None:
+            width = 100
+
+        lines = message.split("\n")
+        lines = [ textwrap.wrap(line, width) for line in lines ]
+
+        if first_line:
+            return lines[0][0]
+        else:
+            return "\n".join([ "\n".join(line) for line in lines ])
+
+    # format strings
+
+    def color_backup_name(self, name, quicksave=False):
+        color = colorama.Fore.CYAN if not quicksave else colorama.Fore.YELLOW
+        return color + name + colorama.Style.RESET_ALL
+
+    def color_warning(self, string):
+        return colorama.Fore.YELLOW + string + colorama.Style.RESET_ALL
+
+    def color_success(self, string):
+        return colorama.Fore.CYAN + string + colorama.Style.RESET_ALL
+
+    def color_error(self, string):
+        return colorama.Fore.RED + string + colorama.Style.RESET_ALL
+
+    def format_date(self, datetime_string):
+        return dateutil.parser.parse(datetime_string).strftime("%m/%d/%Y %I:%M %p")
+
+    # actions
+
+    def connection(self):
+
+        if self.args.name is None:
+            print(self.mb.config.connection.name)
+
+        else:
+            connections = [ k for k in self.mb.config.config["connections"].keys() ]
+
+            if self.args.name not in connections:
+                self.logger.error(self.color_error("Connection '{}' not set in config".format(self.args.name)))
+
+            else:
+                self.write_session({"connection": self.args.name})
+                self.logger.info("Connection set to '{}'".format(self.args.name))
+
+    def backup(self):
+
+        # handle script args
+
+        if self.args.connection is not None:
+            self.mb.config.connection = self.args.connection
+
+        data = {}
+        if self.args.host is not None:
+            data["host"] = self.args.host
+        if self.args.port is not None:
+            data["port"] = self.args.port
+        if self.args.username is not None:
+            data["username"] = self.args.username
+        if self.args.password is not None:
+            data["password"] = self.args.password
+        if self.args.authdb is not None:
+            data["authdb"] = self.args.authdb
+
+        self.mb.config.add({
+            "connections": {
+                self.mb.config.connection.name: data
+            }
+        })
+
+        # backup
+
+        if self.args.message is None:
+            self.args.message = self.capture_multiline_input()
+
+        if not self.args.force:
+
+            metadata = self.mb.generate_metadata()
+            table = self.format_metadata_metrics_table(
+                metadata,
+                self.args.databases,
+                self.args.collections,
+            )
+
+            print()
+            print(self.color_warning("About to create a new backup of the following data:"))
+            print()
+            print(table)
+
+            if self.args.message:
+                message_table = self.format_metadata_message_table(self.args.message)
+                print(message_table)
+
+            print()
+            self.capture_bool_input()
+            print()
+
+        backup_name = self.mb.backup(
+            databases=self.args.databases or None,
+            collections=self.args.collections or None,
+            message=self.args.message or None
+        )
+
+        print(self.color_success("Backup {} created!".format(backup_name)))
+        print()
+
+    def restore(self):
+
+        # handle script args
+
+        if self.args.connection:
+            self.mb.connection = self.args.connection
+
+        data = {}
+        if self.args.host is not None:
+            data["host"] = self.args.host
+        if self.args.port is not None:
+            data["port"] = self.args.port
+
+        self.mb.config.add({
+            "connections": {
+                self.mb.config.connection.name: data
+            }
+        })
+
+        destination_connection = self.args.destination_connection or self.args.connection or "destination_connection"
+
+        data = {}
+        if self.args.destination_host is not None:
+            data["destination_host"] = self.args.destination_host
+        if self.args.destination_port is not None:
+            data["destination_port"] = self.args.destination_port
+        if self.args.destination_username is not None:
+            data["destination_username"] = self.args.destination_username
+        if self.args.destination_password is not None:
+            data["destination_password"] = self.args.destination_password
+        if self.args.destination_authdb is not None:
+            data["destination_authdb"] = self.args.destination_authdb
+
+        self.mb.config.add({
+            "connections": {
+                destination_connection: data
+            }
+        })
+
+        # restore
+
+        metadata = self.mb.read_metadata(self.args.backup)
+
+        if not self.args.force:
+
+            print()
+            print(self.color_warning("About to restore the following backup:"))
+            print()
+            print(self.format_metadata_title_table(self.args.backup, metadata))
+            print(self.format_metadata_metrics_table(metadata, self.args.databases, self.args.collections))
+            print()
+            print(self.color_warning("To the following target:"))
+            print()
+
+            data = [["Host", "Port"]]
+            connection = self.mb.config.connections.get(destination_connection)
+            if not self.args.destination_databases:
+                data.append([connection.host, connection.port])
+
+            else:
+                data[0].append("Databases")
+                for i, db in enumerate(self.args.destination_databases):
+                    data.append([
+                        connection.host if i == 0 else "",
+                        connection.port if i == 0 else "",
+                        db
+                    ])
+
+            print(terminaltables.SingleTable(data).table)
+            print()
+
+            self.capture_bool_input()
+
+        # self.mb.restore(self.args.backup)
+        self.mb.restore(
+            backup=self.args.backup,
+            databases=self.args.databases or None,
+            collections=self.args.collections or None,
+            destination_databases=self.args.destination_databases or None,
+            source_connection=self.args.connection,
+            destination_connection=self.args.destination_connection
+        )
+
+        print(self.color_success("Backup '{}' restored!".format(self.args.backup)))
+
+    def remove(self):
+
+        if self.args.connection:
+            self.mb.connection = self.args.connection
+
+        data = {}
+        if self.args.host is not None:
+            data["host"] = self.args.host
+        if self.args.port is not None:
+            data["port"] = self.args.port
+
+        self.mb.config.add({
+            "connections": {
+                self.mb.config.connection.name: data
+            }
+        })
+
+        # ~~~
+
+        backup_path = os.path.join(
+            self.mb.get_host_directory(),
+            self.args.backup
+        )
+
+        # check if backup directory exists
+        if not os.path.exists(backup_path):
+            # TODO: custom exception
+            raise Exception("backup not found")
+
+        backup_name = self.args.backup
+
+        if not self.args.force:
+            print()
+            print("About to remove backup {}.".format(backup_name))
+            print()
+            self.capture_bool_input()
+            print()
+
+        self.mb.remove_backup(self.args.backup)
+        print("Backup {} removed!".format(backup_name))
+        print()
+
+    def meta(self):
+
+        if self.args.connection:
+            self.mb.connection = self.args.connection
+
+        data = {}
+        if self.args.host is not None:
+            data["host"] = self.args.host
+        if self.args.port is not None:
+            data["port"] = self.args.port
+
+        self.mb.config.add({
+            "connections": {
+                self.mb.config.connection.name: data
+            }
+        })
+
+        # ~~~
+
+        metadata = self.mb.read_metadata(self.args.backup)
+
+        print()
+        print(self.format_metadata_title_table(self.args.backup, metadata))
+        print(self.format_metadata_metrics_table(metadata))
+
+        if metadata["message"]:
+            print(self.format_metadata_message_table(metadata["message"]))
+
+        print()
+
+    def server(self):
+
+        if self.args.connection:
+            self.mb.connection = self.args.connection
+
+        data = {}
+        if self.args.host is not None:
+            data["host"] = self.args.host
+        if self.args.port is not None:
+            data["port"] = self.args.port
+        if self.args.username is not None:
+            data["username"] = self.args.username
+        if self.args.password is not None:
+            data["password"] = self.args.password
+        if self.args.authdb is not None:
+            data["authdb"] = self.args.authdb
+
+        self.mb.config.add({
+            "connections": {
+                self.mb.config.connection.name: data
+            }
+        })
+
+        # ~~~
+
+        metadata = self.mb.generate_metadata()
+        title = " Server [{}] ".format(self.mb.config.connection.name)
+
+        print()
+        print(self.format_metadata_metrics_table(metadata, title=title))
+        print()
+
+    def backups(self):
+
+        if self.args.connection:
+            self.mb.config.connection = self.args.connection
+
+        data = {}
+        if self.args.host is not None:
+            data["host"] = self.args.host
+        if self.args.port is not None:
+            data["port"] = self.args.port
+
+        self.mb.config.add({
+            "connections": {
+                self.mb.config.connection.name: data
+            }
+        })
+
+        # ~~~
+
+        backups_list = self.mb.get_backups()
+
+        if len(backups_list) == 0:
+            table_data = [["No backups have been created"]]
+            print()
+            print(terminaltables.SingleTable(table_data).table)
+            print()
+
+        else:
+            table_data = [["Name", "Date & Time", "DB", "C", "D", "Message"]]
+
+            backups = []
+            for backup in backups_list:
+
+                # read metadata
+                metadata = self.mb.read_metadata(backup)
+                backups.append(metadata)
+
+                # inject name
+                quicksave = True if "quicksave" in metadata else False
+                metadata["name"] = self.color_backup_name(backup, quicksave)
+
+                # database count
+                metadata["databases_count"] = len(metadata["databases"])
+
+                # collection count
+                collection_count = 0
+                for database in metadata["databases"]:
+                    collection_count += len(database["collections"])
+                metadata["collections_count"] = collection_count
+
+                # document count
+                document_count = 0
+                for database in metadata["databases"]:
+                    for collection in database["collections"]:
+                        document_count += collection["document_count"]
+                metadata["documents_count"] = document_count
+
+            # sort backups by date
+            backups.sort(key=lambda x: x["date"], reverse=True)
+
+            for i, backup in enumerate(backups):
+
+                # limit
+                if self.args.limit and i == self.args.limit:
+                    break
+
+                table_data.append([
+                    backup["name"],
+                    self.format_date(backup["date"]),
+                    backup["databases_count"],
+                    backup["collections_count"],
+                    backup["documents_count"],
+                    self.format_metadata_message(backup["message"], 32, True)
+                ])
+
+            title = " Backups [{}] ".format(self.mb.config.connection.name)
+
+            table = terminaltables.SingleTable(table_data, title=title)
+
+            table.justify_columns[2] = "right"
+            table.justify_columns[3] = "right"
+            table.justify_columns[4] = "right"
+
+            print()
+            print(table.table)
+            print()
+
+    def hosts(self):
+
+        hosts = self.mb.get_hosts(count=True)
+
+        print()
+
+        if len(hosts) == 0:
+            data = [["No host directories have been created"]]
+            table = terminaltables.SingleTable(data)
+            print(table.table)
+            print()
+
+        else:
+            data = [("Name", "Connection", "Backups")]
+            for host in hosts:
+
+                connection_name = self.mb.config.connections.get(socket=host[0]).name or ""
+                row = [host[0], connection_name, host[1]]
+
+                # limit
+                if self.args.limit and i == self.args.limit:
+                    break
+
+                data.append(row)
+
+            table = terminaltables.SingleTable(data, " Host Directories ")
+            table.justify_columns[2] = "right"
+
+            print(table.table)
+            print()
+
+    def config(self):
+
+        config = self.mb.config.config
+
+        misc_data = []
+        for key, value in config.items():
+            if key != "connections":
+                misc_data.append([key, value])
+
+        misc_table = terminaltables.SingleTable(misc_data)
+        misc_table.inner_heading_row_border = False
+
+        print()
+        print(misc_table.table)
+        print()
+        print("Connections:")
+        print()
+
+        for name, host in config["connections"].items():
+
+            connection_data = []
+            for key, value in host.items():
+
+                connection_data.append([key.ljust(9), value])
+
+            connection_table = terminaltables.SingleTable(connection_data, " {} ".format(name))
+            connection_table.inner_heading_row_border = False
+            print(connection_table.table)
+
+        print()
+
+
+MongobarScript().run()

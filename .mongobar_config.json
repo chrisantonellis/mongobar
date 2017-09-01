@@ -1,0 +1,13 @@
+{
+  "log_level": "DEBUG",
+  "log_file": "~/.mongobar.log",
+  "connections": {
+    "remote": {
+      "host": "mongobar_remote",
+      "port": 27017,
+      "username": "backup_restore_user",
+      "password": "password",
+      "authdb": "admin"
+    }
+  }
+}

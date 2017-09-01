@@ -1,0 +1,21 @@
+version: "3.0"
+services:
+
+  mongobar_host:
+    build: .
+    container_name: mongobar_host
+    image: mongobar
+    volumes:
+      - ./mongobar:/mongobar/mongobar
+      - ./.mongobar_config.json:/root/.mongobar_config.json
+      - ./tests:/tests
+      - ./htmlcov:/htmlcov
+
+  mongobar_remote:
+    build: .
+    container_name: mongobar_remote
+    image: mongobar
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    command: /init_auth.sh
