@@ -15,6 +15,7 @@ from mongobar.utils import get_directories
 
 from mongobar.config import Config
 
+from mongobar.exceptions import ServerConnectionError
 from mongobar.exceptions import CommandError
 from mongobar.exceptions import BackupNotFoundError
 from mongobar.exceptions import DatabaseNotFoundInBackupError
@@ -59,7 +60,16 @@ class Mongobar(object):
             if connection.authdb is not None:
                 options["authSource"] = connection.authdb
 
-        return pymongo.MongoClient(**options)
+        try:
+            client = pymongo.MongoClient(**options)
+
+            # test connection
+            client.database_names()
+
+            return client
+
+        except pymongo.errors.PyMongoError as e:
+            raise ServerConnectionError(e)
 
     def generate_metadata(self, databases=None, collections=None):
 

@@ -1,41 +1,80 @@
 ## mongobar
-mongobar is a python shell script used to create and manage MongoDB backups.  
-Internally it is a wrapper for the **mongodump** and **mongorestore** commands.  
+![](assets/backups.png)
+mongobar is a python shell script used to create and manage MongoDB backups. Internally it is a wrapper for the MongoDB  **mongodump** and **mongorestore** commands.  
 
 ## Installation
 ```
 pip install git+git://github.com/chrisantonellis/mongobar.git
 ```
 ## Usage
-* Run `mongobar` in a terminal
+Run `mongobar` in a terminal
 
-## Configuration Setup
-* Copy `.mongobar_config.json` to `~/.mongobar_config.json`
-* Edit the configuration to meet your needs
+## Help
+Access help via the `-h --help` commands. All actions have associated help text.  
 
-## HELP!!
-* (Almost) everything is explained in the `-h --help` commands
-* Access help via `mongobar -h`
-* Access help for an action by typing `mongobar <action> -h`
+`mongobar --help`  
+![mongobar --help](assets/help.png)  
+`mongobar backup --help`  
+![mongobar --help](assets/help_backup.png)    
+
+## Configuration
+mongobar comes with a default configuration that defines a `Connection` for a MongoDB server running on **localhost:27017** with authentication disabled. Here is what that config looks like:
+```json
+{
+    "root": "~/.mongobar_backups",
+    "log_level": "INFO",
+    "connections": {
+        "default": {
+            "host": "localhost",
+            "port": 27017
+        }
+    }
+}
+```
+The `default` connection can be overridden and additional  connections can be added by writing a config file. Here is an example of a custom config:
+```json
+{
+    "connections": {
+        "default": {
+            "host": "localhost",
+            "port": 27017,
+            "username": "user",
+            "password": "pass",
+            "authdb": "admin"
+        },
+        "production": {
+            "host": "102.100.204.35",
+            "port": 27017,
+            "username": "user",
+            "password": "pass",
+            "authdb": "admin"
+        }
+    }
+}
+```
+mongobar will try to load a config file from `~/.mongobar_config.json` by default. This path can be changed by using the `--config` flag. The current configuration can be viewed by running the `config` action.
+
+## Connections
+mongobar uses the `connection` action to view and set the **current connection**. This attribute is used by actions `backup`, `restore`, `remove`, `backups`, `hosts`, and `meta`. Connections are defined in the configuration file and can be viewed by running the `config` action.
 
 ## Examples
 
-#### Backups
-List all backups. Backups are assigned a unique name when created.
-![backups](https://i.imgur.com/O3AxGMF.png)  
+#### `mongobar backups`
+View backups
+![](assets/backups.png)
 
-#### Backup metadata
-View metadata for a backup. Metadata is created when a backup is created.
-![meta](https://i.imgur.com/TarD8xB.png)
+#### `mongobar meta <backup name>`
+View backup metadata
+![](assets/meta.png)
 
-#### Server metadata
-View metadata for a server.
-![server](https://i.imgur.com/45JOCbF.png)
+#### `mongobar hosts`
+View host directories
+![](assets/hosts.png)
 
-#### Host Directories
-View backup host directories. Backups are automatically separated by host.
-![meta](https://i.imgur.com/bgKE62C.png)
+#### `mongobar config`
+View configuration
+![](assets/config.png)
 
-#### Configuration
-View configuration data.
-![meta](https://i.imgur.com/h9c0ytR.png)
+#### `mongobar server`
+View server metadata
+![](assets/server.png)

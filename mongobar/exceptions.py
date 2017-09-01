@@ -7,6 +7,10 @@ class BaseError(Exception):
         super().__init__(msg)
 
 
+class ServerConnectionError(BaseError):
+    msg = "Connection error: {}"
+
+
 class ConnectionNotSetError(BaseError):
     msg = "Connection '{}' not set"
 
