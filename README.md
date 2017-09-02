@@ -4,7 +4,7 @@ mongobar is a python shell script used to create and manage MongoDB backups. Int
 
 ## Installation
 ```
-pip install git+git://github.com/chrisantonellis/mongobar.git
+pip install mongobar
 ```
 ## Usage
 Run `mongobar` in a terminal
