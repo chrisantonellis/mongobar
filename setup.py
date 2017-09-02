@@ -39,9 +39,11 @@ class PublishCommand(setuptools.Command):
         sys.exit()
 
 
+here = os.path.abspath(os.path.dirname(__file__))
+
 setuptools.setup(
     name="mongobar",
-    version=mongobar.__version__.__version__,
+    version="0.0.3",
     description="MongoDB Backup and Restore Manager",
     keywords="mongodb backup restore mongodump mongorestore",
     url="https://github.com/chrisantonellis/mongobar",

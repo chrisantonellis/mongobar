@@ -3,4 +3,5 @@ __pycache__/
 *.py[cod]
 htmlcov/
 .coverage
-.coverage.*
+dist/
+*.egg-info/

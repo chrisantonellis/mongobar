@@ -41,14 +41,8 @@ class MongobarScript(object):
         self.create_parser_server(subparsers)
         self.create_parser_config(subparsers)
 
-        # session
-        session = self.read_session()
-        if session is not None:
-            self.mb.config.connection = session["connection"]
-
         # parse args
         self.args = self.parser.parse_args()
-
 
         # config
         self.mb.config.add_file(self.args.config or self.default_config_file)
@@ -63,7 +57,6 @@ class MongobarScript(object):
 
         if args:
             self.mb.config.add(args)
-
 
         # logging
         self.logger = logging.getLogger("mongobar_script")
@@ -94,6 +87,11 @@ class MongobarScript(object):
 
             except (FileNotFoundError, PermissionError) as e:
                 self.logger.error(e)
+
+        # session
+        session = self.read_session()
+        if session is not None:
+            self.mb.config.connection = session["connection"]
 
     def run(self):
         try:
