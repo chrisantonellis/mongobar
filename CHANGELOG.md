@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 * version moved from __init__.py to __version__.py
 * setup.py updated to use __version__.py
 * tests updated to work in travis environment
+* added badges to README.md
 
 ## [ 0.0.4 ] 2017-09-02
 
