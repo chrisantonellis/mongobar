@@ -2,13 +2,12 @@ import os
 
 from mongobar.exceptions import ConnectionNotSetError
 from mongobar.exceptions import ConnectionAttributeNotSetError
-from mongobar.exceptions import ConnectionAuthdbSetError
 
 
 class Connection(object):
 
-    def __init__(self, name, host, port, username=None, password=None, \
-            authdb=None):
+    def __init__(self, name, host=None, port=None, \
+            username=None, password=None, authdb=None):
         self.name = name
         self.host = host
         self.port = port
@@ -18,18 +17,24 @@ class Connection(object):
 
     def validate(self):
 
-        if not all(getattr(self, k) is not None for k in ["host", "port"]):
-            raise ConnectionAttributeNotSetError(k)
+        # host
+        if self.host is None:
+            raise ConnectionAttributeNotSetError("host")
 
-        if any(getattr(self, k) is not None for k in ["username", "password"]):
+        # port
+        if self.port is None:
+            raise ConnectionAttributeNotSetError("port")
 
-            if not all(getattr(self, k) is not None for k in ["username", "password"]):
-                raise ConnectionAttributeNotSetError(k)
+        # username, password
+        if self.username is not None or self.password is not None:
 
-        elif self.authdb is not None:
-            raise ConnectionAuthdbSetError
+            if self.username is None:
+                raise ConnectionAttributeNotSetError("username")
 
-        return self
+            if self.password is None:
+                raise ConnectionAttributeNotSetError("password")
+
+        return True
 
     @property
     def socket(self):
@@ -64,10 +69,15 @@ class Connections(object):
         if name is not None:
             if name not in self.connections:
                 raise ConnectionNotSetError(name)
-            return self.connections[name].validate()
+
+            connection = self.connections[name]
+            connection.validate()
+            return connection
 
         # get by socket
         if socket is not None:
             for connection in self.connections.values():
                 if connection.socket == socket:
-                    return connection.validate()
+
+                    connection.validate()
+                    return connection

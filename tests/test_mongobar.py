@@ -201,6 +201,26 @@ class TestMongobar(unittest.TestCase):
             authSource="authdb"
         )
 
+    def test__create_pymongo_client__auth_options(self, mongoclient):
+
+        mongoclient.side_effect = pymongo.errors.PyMongoError()
+
+        m = mongobar.Mongobar()
+        m.config.add({
+            "connections": {
+                "default": {
+                    "host": "localhost",
+                    "port": 27017,
+                    "username": "user",
+                    "password": "pass",
+                    "authdb": "authdb"
+                }
+            }
+        })
+
+        with self.assertRaises(mongobar.exceptions.ServerConnectionError):
+            m.create_pymongo_client()
+
     # generate_metadata
 
     def test__generate_metadata__databases_arg(self, mongoclient):
