@@ -1,0 +1,8 @@
+language: python
+python:
+  - "3.5.2"
+install:
+  - pip install -e .[tests]
+script: green test -r
+after_success:
+  coveralls
