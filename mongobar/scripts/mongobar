@@ -103,13 +103,14 @@ class MongobarScript(object):
             self.logger.critical(str(e))
             self.parser.exit()
 
-
     # parsers
 
     def create_parser_main(self):
 
+        description = "mongobar 🍫  {}\nMongoDB Backup and Restore manager"
+        description = description.format(mongobar.__version__.__version__)
         parser = argparse.ArgumentParser("mongobar",
-            description="mongobar 🍫\nMongoDB Backup and Restore manager",
+            description=description,
             formatter_class=argparse.RawTextHelpFormatter
         )
 
@@ -639,11 +640,10 @@ class MongobarScript(object):
         return True
 
     def capture_multiline_input(self):
-        with tempfile.NamedTemporaryFile(suffix=".tmp") as file_handle:
-            file_handle.flush()
+
+        with tempfile.NamedTemporaryFile() as file_handle:
             subprocess.call([os.environ.get("EDITOR", "nano"), file_handle.name])
-            file_handle.seek(0)
-            return file_handle.read()
+            return file_handle.read().decode("utf-8").rstrip("\n")
 
     # session
 
@@ -820,6 +820,7 @@ class MongobarScript(object):
 
         if self.args.message is None:
             self.args.message = self.capture_multiline_input()
+            print(self.args.message, type(self.args.message))
 
         if not self.args.force:
 
