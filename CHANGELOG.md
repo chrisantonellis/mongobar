@@ -4,7 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [ 0.0.5 ] 2017-09-XX
+## [ 0.0.6 ] 2017-09-06
+
+### Added
+
+* Connection.validate method
+  * integrated into tests
+  * integrated into Connections.add method
+* updated test_mongobar tests to get to 100% coverage
+
+## [ 0.0.5 ] 2017-09-06
 
 ### Added
 
