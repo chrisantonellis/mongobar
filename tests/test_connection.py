@@ -18,7 +18,6 @@ class TestConnection(unittest.TestCase):
 
     def test__host_property(self):
         c = Connection(
-            root="/",
             name="default",
             host="localhost",
             port=27017
@@ -30,7 +29,6 @@ class TestConnection(unittest.TestCase):
 
     def test__port_property(self):
         c = Connection(
-            root="/",
             name="default",
             host="localhost",
             port=27017
@@ -42,7 +40,6 @@ class TestConnection(unittest.TestCase):
 
     def test__username_property__returns_value(self):
         c = Connection(
-            root="/",
             name="default",
             host="localhost",
             port=27017,
@@ -57,7 +54,6 @@ class TestConnection(unittest.TestCase):
 
     def test__password_property__returns_value(self):
         c = Connection(
-            root="/",
             name="default",
             host="localhost",
             port=27017,
@@ -72,7 +68,6 @@ class TestConnection(unittest.TestCase):
 
     def test__authdb_property__returns_value(self):
         c = Connection(
-            root="/",
             name="default",
             host="localhost",
             port=27017,
@@ -87,7 +82,6 @@ class TestConnection(unittest.TestCase):
 
     def test__socket_property(self):
         c = Connection(
-            root="/",
             name="default",
             host="localhost",
             port=27017
@@ -99,7 +93,6 @@ class TestConnection(unittest.TestCase):
 
     def test__auth__returns_False(self):
         c = Connection(
-            root="/",
             name="default",
             host="localhost",
             port=27017
@@ -109,7 +102,6 @@ class TestConnection(unittest.TestCase):
 
     def test__auth__returns_True(self):
         c = Connection(
-            root="/",
             name="default",
             host="localhost",
             port=27017,
@@ -119,15 +111,14 @@ class TestConnection(unittest.TestCase):
 
         self.assertTrue(c.auth)
 
-    def test__directory_property(self):
-        c = Connection(
-            root="/",
-            name="default",
-            host="localhost",
-            port=27017
-        )
-
-        self.assertEqual(c.directory, "/localhost:27017")
+    # def test__directory_property(self):
+    #     c = Connection(
+    #         name="default",
+    #         host="localhost",
+    #         port=27017
+    #     )
+    #
+    #     self.assertEqual(c.directory, "/localhost:27017")
 
 
 class TestConnections(unittest.TestCase):
@@ -138,20 +129,20 @@ class TestConnections(unittest.TestCase):
 
     def test__names(self):
         c = Connections()
-        c.add("/root", "foo", {"host": "bar", "port": 27017})
-        c.add("/root", "bar", {"host": "bar", "port": 27017})
+        c.add("foo", {"host": "bar", "port": 27017})
+        c.add("bar", {"host": "bar", "port": 27017})
         self.assertEqual(c.names(), ["foo", "bar"])
 
     def test__add(self):
         c = Connections()
-        c.add("/root", "foo", {"host": "bar", "port": 27017})
+        c.add("foo", {"host": "bar", "port": 27017})
         self.assertEqual(c.connections["foo"].name, "foo")
         self.assertEqual(c.connections["foo"].host, "bar")
         self.assertEqual(c.connections["foo"].port, 27017)
 
     def test__get__name_arg(self):
         c = Connections()
-        c.add("/root", "foobar", {"host": "localhost", "port": 27017})
+        c.add("foobar", {"host": "localhost", "port": 27017})
         connection = c.get("foobar")
         self.assertEqual(connection.host, "localhost")
         self.assertEqual(connection.port, 27017)
@@ -163,5 +154,5 @@ class TestConnections(unittest.TestCase):
 
     def test__get__socket_arg(self):
         c = Connections()
-        c.add("/root", "foobar", {"host": "localhost", "port": 27017})
+        c.add("foobar", {"host": "localhost", "port": 27017})
         self.assertEqual(c.get(socket="localhost:27017").name, "foobar")

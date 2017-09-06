@@ -231,7 +231,7 @@ class TestMongobar(unittest.TestCase):
         m.write_metadata("name", {"key": "value"})
 
         path = os.path.join(
-            m.config.connection.directory,
+            m.config.connection_dir,
             "name",
             "metadata.json"
         )
@@ -250,7 +250,7 @@ class TestMongobar(unittest.TestCase):
         m.read_metadata("name")
 
         path = os.path.join(
-            m.config.connection.directory,
+            m.config.connection_dir,
             "name",
             "metadata.json"
         )
@@ -286,7 +286,7 @@ class TestMongobar(unittest.TestCase):
         m = mongobar.Mongobar()
         m.backup()
 
-        directory = os.path.join(m.config.connection.directory, "foo-bar")
+        directory = os.path.join(m.config.connection_dir, "foo-bar")
 
         self.assertIn(
             mock.call([
@@ -323,7 +323,7 @@ class TestMongobar(unittest.TestCase):
     def test__backup__create_host_directory(self, *args):
         m = mongobar.Mongobar()
         m.backup()
-        self.assertIn(mock.call(m.config.connection.directory), args[3].call_args_list)
+        self.assertIn(mock.call(m.config.connection_dir), args[3].call_args_list)
 
     @mock.patch("mongobar.mongobar.os.path.exists", return_value=False)
     @mock.patch("mongobar.Mongobar.generate_backup_name", return_value="foo-bar")
@@ -376,7 +376,7 @@ class TestMongobar(unittest.TestCase):
                 "-p", "pass",
                 "--authenticationDatabase", "authdb",
                 "--db", "d1",
-                "--out", os.path.join(m.config.connection.directory, "foo-bar"),
+                "--out", os.path.join(m.config.connection_dir, "foo-bar"),
                 "--quiet",
                 "--gzip"
             ]),
@@ -401,7 +401,7 @@ class TestMongobar(unittest.TestCase):
                 "-h", "localhost",
                 "-p", "27017",
                 "--db", "foobar",
-                "--out", os.path.join(m.config.connection.directory, "foo-bar"),
+                "--out", os.path.join(m.config.connection_dir, "foo-bar"),
                 "--quiet",
                 "--gzip"
             ]),
@@ -439,7 +439,7 @@ class TestMongobar(unittest.TestCase):
                 "-p", "27017",
                 "--db", "d1",
                 "--collection", "c1",
-                "--out", os.path.join(m.config.connection.directory, "foo-bar"),
+                "--out", os.path.join(m.config.connection_dir, "foo-bar"),
                 "--quiet",
                 "--gzip"
             ]),
@@ -465,7 +465,7 @@ class TestMongobar(unittest.TestCase):
                 "-p", "27017",
                 "--db", "d1",
                 "--collection", "foobar",
-                "--out", os.path.join(m.config.connection.directory, "foo-bar"),
+                "--out", os.path.join(m.config.connection_dir, "foo-bar"),
                 "--quiet",
                 "--gzip"
             ]),
@@ -504,7 +504,7 @@ class TestMongobar(unittest.TestCase):
         m = mongobar.Mongobar()
         m.restore("d1")
 
-        directory = os.path.join(m.config.connection.directory, "d1")
+        directory = os.path.join(m.config.connection_dir, "d1")
 
         self.assertIn(
             mock.call([
@@ -565,7 +565,7 @@ class TestMongobar(unittest.TestCase):
         })
         m.restore("backup")
 
-        directory = os.path.join(m.config.connection.directory, "backup")
+        directory = os.path.join(m.config.connection_dir, "backup")
 
         self.assertIn(
             mock.call([
@@ -628,7 +628,7 @@ class TestMongobar(unittest.TestCase):
                 "-p", "27017",
                 "--nsInclude", "d1.c1",
                 "--drop",
-                "--dir", os.path.join(m.config.connection.directory, "backup"),
+                "--dir", os.path.join(m.config.connection_dir, "backup"),
                 "--gzip"
             ]),
             args[1].call_args_list
@@ -680,7 +680,7 @@ class TestMongobar(unittest.TestCase):
     def test__get_backups(self, *args):
         m = mongobar.Mongobar()
         m.get_backups()
-        args[0].assert_called_with(m.config.connection.directory)
+        args[0].assert_called_with(m.config.connection_dir)
 
     @mock.patch("mongobar.utils.os.path.exists", return_value=False)
     @mock.patch("mongobar.mongobar.create_directory")
@@ -696,7 +696,7 @@ class TestMongobar(unittest.TestCase):
     def test__remove_backup(self, *args):
         m = mongobar.Mongobar()
         m.remove_backup("foo")
-        backup_directory = m.config.connection.directory
+        backup_directory = m.config.connection_dir
         args[1].assert_called_with(os.path.join(backup_directory, "foo"))
 
     @mock.patch("mongobar.mongobar.os.path.exists", return_value=False)

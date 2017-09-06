@@ -15,6 +15,14 @@ class ConnectionNotSetError(BaseError):
     msg = "Connection '{}' not set"
 
 
+class ConnectionAttributeNotSetError(BaseError):
+    msg = "Connection attribute '{}' not set"
+
+
+class ConnectionAuthdbSetError(BaseError):
+    msg = "Connection attribute 'authdb' set without username/password"
+
+
 class BackupNotFoundError(BaseError):
     msg = "Backup '{}' not found"
 
