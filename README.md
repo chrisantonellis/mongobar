@@ -1,4 +1,4 @@
-## mongobar
+## mongobar 0.0.5
 ![](assets/backups.png)
 mongobar is a python shell script used to create and manage MongoDB backups. Internally it is a wrapper for the MongoDB  **mongodump** and **mongorestore** commands.  
 
