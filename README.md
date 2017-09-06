@@ -1,4 +1,4 @@
-## mongobar 0.0.5
+## mongobar [![Build Status](https://travis-ci.org/chrisantonellis/mongobar.svg?branch=master)](https://travis-ci.org/chrisantonellis/mongobar) [![Coverage Status](https://coveralls.io/repos/github/chrisantonellis/mongobar/badge.svg?branch=dev)](https://coveralls.io/github/chrisantonellis/mongobar?branch=dev)
 ![](assets/backups.png)
 mongobar is a python shell script used to create and manage MongoDB backups. Internally it is a wrapper for the MongoDB  **mongodump** and **mongorestore** commands.  
 
