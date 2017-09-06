@@ -3,6 +3,6 @@ python:
   - "3.5.2"
 install:
   - pip install -e .[tests]
-script: green test -r
+script: green -r
 after_success:
   coveralls
