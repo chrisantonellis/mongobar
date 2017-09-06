@@ -16,7 +16,7 @@ with open(version_abs_path) as file_handle:
 setuptools.setup(
     name="mongobar",
     version=module_metadata["__version__"],
-    description="MongoDB Backup and Restore Manager",
+    description="MongoDB Backup and Restore manager",
     keywords="mongodb backup restore mongodump mongorestore",
     url="https://github.com/chrisantonellis/mongobar",
 
