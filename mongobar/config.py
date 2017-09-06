@@ -40,6 +40,10 @@ class Config(object):
         self._connection = value
 
     @property
+    def connection_dir(self):
+        return os.path.join(self.root, self.connection.socket)
+
+    @property
     def root(self):
         return os.path.expanduser(self.config.get("root"))
 
@@ -75,5 +79,5 @@ class Config(object):
         # create connections
         self.connections.connections = {}
         for name, attributes in data["connections"].items():
-            self.connections.add(self.root, name, attributes)
+            self.connections.add(name, attributes)
 

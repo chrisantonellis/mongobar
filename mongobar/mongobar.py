@@ -109,7 +109,7 @@ class Mongobar(object):
     def write_metadata(self, name, data):
 
         metadata_path = os.path.join(
-            self.config.connection.directory,
+            self.config.connection_dir,
             name,
             "metadata.json"
         )
@@ -124,7 +124,7 @@ class Mongobar(object):
         connection = self.config.connection
 
         metadata_path = os.path.join(
-            self.config.connection.directory,
+            self.config.connection_dir,
             name,
             "metadata.json"
         )
@@ -153,7 +153,7 @@ class Mongobar(object):
             create_directory(root_dir)
 
         # create backup directory if necessary
-        conn_dir = self.config.connection.directory
+        conn_dir = self.config.connection_dir
         if not os.path.exists(conn_dir):
             self.logger.debug("Backup directory '{}' created".format(conn_dir))
             create_directory(conn_dir)
@@ -246,7 +246,7 @@ class Mongobar(object):
             destination_databases=None, destination_connection=None):
 
         # check if backup directory exists
-        backup_dir = os.path.join(self.config.connection.directory, name)
+        backup_dir = os.path.join(self.config.connection_dir, name)
         if not os.path.exists(backup_dir):
             raise BackupNotFoundError(name)
 
@@ -348,7 +348,7 @@ class Mongobar(object):
         return hosts
 
     def get_backups(self):
-        path = self.config.connection.directory
+        path = self.config.connection_dir
 
         if not os.path.exists(path):
             return []
@@ -356,7 +356,7 @@ class Mongobar(object):
         return get_directories(path)
 
     def remove_backup(self, name):
-        path = os.path.join(self.config.connection.directory, name)
+        path = os.path.join(self.config.connection_dir, name)
 
         if not os.path.exists(path):
             raise BackupNotFoundError(name)

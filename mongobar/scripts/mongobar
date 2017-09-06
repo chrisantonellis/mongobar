@@ -63,12 +63,6 @@ class MongobarScript(object):
         # logging
         self.logger = logging.getLogger("mongobar_script")
 
-        def myfunc(self, *args, **kwargs):
-            self.critical(*args, **kwargs)
-            return self.color_error(*args, **kwargs)
-
-        self.logger.critical = myfunc
-
         # level
         self.logger.setLevel(self.mb.config.log_level)
         self.mb.logger.setLevel(self.mb.config.log_level)

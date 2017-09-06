@@ -15,6 +15,10 @@ class ConnectionNotSetError(BaseError):
     msg = "Connection '{}' not set"
 
 
+class ConnectionAttributeNotSetError(BaseError):
+    msg = "Connection attribute '{}' not set"
+
+
 class BackupNotFoundError(BaseError):
     msg = "Backup '{}' not found"
 

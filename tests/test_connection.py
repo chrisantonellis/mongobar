@@ -8,86 +8,80 @@ from mongobar.connection import Connection
 from mongobar.connection import Connections
 
 from mongobar.exceptions import ConnectionNotSetError
+from mongobar.exceptions import ConnectionAttributeNotSetError
 
 
 # Test Connection
 
 class TestConnection(unittest.TestCase):
 
-    # host
+    # validate
 
-    def test__host_property(self):
+    def test__validate(self):
         c = Connection(
-            root="/",
             name="default",
             host="localhost",
             port=27017
         )
 
-        self.assertEqual(c.host, "localhost")
+        self.assertTrue(c.validate())
 
-    # port
-
-    def test__port_property(self):
+    def test__validate__auth_args(self):
         c = Connection(
-            root="/",
             name="default",
             host="localhost",
+            port=27017,
+            username="username",
+            password="password",
+            authdb="authdb"
+        )
+
+        self.assertTrue(c.validate())
+
+    def test__validate__missing_host__raises__ConnectionAttributeNotSetError(self):
+        c = Connection(
+            name="default",
             port=27017
         )
 
-        self.assertEqual(c.port, 27017)
+        with self.assertRaises(ConnectionAttributeNotSetError):
+            c.validate()
 
-    # username
-
-    def test__username_property__returns_value(self):
+    def test__validate__missing_port__raises__ConnectionAttributeNotSetError(self):
         c = Connection(
-            root="/",
+            name="default",
+            host="localhost"
+        )
+
+        with self.assertRaises(ConnectionAttributeNotSetError):
+            c.validate()
+
+    def test__validate__missing_username__raises__ConnectionAttributeNotSetError(self):
+        c = Connection(
             name="default",
             host="localhost",
             port=27017,
-            username="user",
-            password="password",
-            authdb="authdb"
+            password="pass"
         )
 
-        self.assertEqual(c.username, "user")
+        with self.assertRaises(ConnectionAttributeNotSetError):
+            c.validate()
 
-    # password
-
-    def test__password_property__returns_value(self):
+    def test__validate__missing_password__raises__ConnectionAttributeNotSetError(self):
         c = Connection(
-            root="/",
             name="default",
             host="localhost",
             port=27017,
-            username="user",
-            password="password",
-            authdb="authdb"
+            username="user"
         )
 
-        self.assertEqual(c.password, "password")
-
-    # authdb
-
-    def test__authdb_property__returns_value(self):
-        c = Connection(
-            root="/",
-            name="default",
-            host="localhost",
-            port=27017,
-            username="user",
-            password="password",
-            authdb="authdb"
-        )
-
-        self.assertEqual(c.authdb, "authdb")
+        with self.assertRaises(ConnectionAttributeNotSetError):
+            c.validate()
 
     # socket
 
     def test__socket_property(self):
         c = Connection(
-            root="/",
             name="default",
             host="localhost",
             port=27017
@@ -99,7 +93,6 @@ class TestConnection(unittest.TestCase):
 
     def test__auth__returns_False(self):
         c = Connection(
-            root="/",
             name="default",
             host="localhost",
             port=27017
@@ -109,7 +102,6 @@ class TestConnection(unittest.TestCase):
 
     def test__auth__returns_True(self):
         c = Connection(
-            root="/",
             name="default",
             host="localhost",
             port=27017,
@@ -118,16 +110,6 @@ class TestConnection(unittest.TestCase):
         )
 
         self.assertTrue(c.auth)
-
-    def test__directory_property(self):
-        c = Connection(
-            root="/",
-            name="default",
-            host="localhost",
-            port=27017
-        )
-
-        self.assertEqual(c.directory, "/localhost:27017")
 
 
 class TestConnections(unittest.TestCase):
@@ -138,20 +120,20 @@ class TestConnections(unittest.TestCase):
 
     def test__names(self):
         c = Connections()
-        c.add("/root", "foo", {"host": "bar", "port": 27017})
-        c.add("/root", "bar", {"host": "bar", "port": 27017})
+        c.add("foo", {"host": "bar", "port": 27017})
+        c.add("bar", {"host": "bar", "port": 27017})
         self.assertEqual(c.names(), ["foo", "bar"])
 
     def test__add(self):
         c = Connections()
-        c.add("/root", "foo", {"host": "bar", "port": 27017})
+        c.add("foo", {"host": "bar", "port": 27017})
         self.assertEqual(c.connections["foo"].name, "foo")
         self.assertEqual(c.connections["foo"].host, "bar")
         self.assertEqual(c.connections["foo"].port, 27017)
 
     def test__get__name_arg(self):
         c = Connections()
-        c.add("/root", "foobar", {"host": "localhost", "port": 27017})
+        c.add("foobar", {"host": "localhost", "port": 27017})
         connection = c.get("foobar")
         self.assertEqual(connection.host, "localhost")
         self.assertEqual(connection.port, 27017)
@@ -163,5 +145,5 @@ class TestConnections(unittest.TestCase):
 
     def test__get__socket_arg(self):
         c = Connections()
-        c.add("/root", "foobar", {"host": "localhost", "port": 27017})
+        c.add("foobar", {"host": "localhost", "port": 27017})
         self.assertEqual(c.get(socket="localhost:27017").name, "foobar")

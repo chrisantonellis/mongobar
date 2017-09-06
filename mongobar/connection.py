@@ -1,19 +1,40 @@
 import os
 
 from mongobar.exceptions import ConnectionNotSetError
+from mongobar.exceptions import ConnectionAttributeNotSetError
 
 
 class Connection(object):
 
-    def __init__(self, root, name, host, port, \
+    def __init__(self, name, host=None, port=None, \
             username=None, password=None, authdb=None):
-        self.root = root
         self.name = name
         self.host = host
         self.port = port
         self.username = username
         self.password = password
         self.authdb = authdb
+
+    def validate(self):
+
+        # host
+        if self.host is None:
+            raise ConnectionAttributeNotSetError("host")
+
+        # port
+        if self.port is None:
+            raise ConnectionAttributeNotSetError("port")
+
+        # username, password
+        if self.username is not None or self.password is not None:
+
+            if self.username is None:
+                raise ConnectionAttributeNotSetError("username")
+
+            if self.password is None:
+                raise ConnectionAttributeNotSetError("password")
+
+        return True
 
     @property
     def socket(self):
@@ -22,10 +43,6 @@ class Connection(object):
     @property
     def auth(self):
         return bool(self.username and self.password)
-
-    @property
-    def directory(self):
-        return os.path.join(self.root, self.socket)
 
 
 class Connections(object):
@@ -36,15 +53,14 @@ class Connections(object):
     def names(self, **kwargs):
         return [c for c in self.connections.keys()]
 
-    def add(self, root, name, attributes):
+    def add(self, name, data):
         self.connections[name] = Connection(
-            root,
             name,
-            attributes.get("host"),
-            attributes.get("port"),
-            attributes.get("username", None),
-            attributes.get("password", None),
-            attributes.get("authdb", None)
+            data.get("host"),
+            data.get("port"),
+            data.get("username", None),
+            data.get("password", None),
+            data.get("authdb", None)
         )
 
     def get(self, name=None, socket=None):
@@ -53,10 +69,15 @@ class Connections(object):
         if name is not None:
             if name not in self.connections:
                 raise ConnectionNotSetError(name)
-            return self.connections[name]
+
+            connection = self.connections[name]
+            connection.validate()
+            return connection
 
         # get by socket
         if socket is not None:
             for connection in self.connections.values():
                 if connection.socket == socket:
+
+                    connection.validate()
                     return connection
