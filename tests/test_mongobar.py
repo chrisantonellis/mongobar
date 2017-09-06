@@ -591,6 +591,8 @@ class TestMongobar(unittest.TestCase):
         m = mongobar.Mongobar()
         m.restore("backup", databases=["d1"], destination_databases=["destination"])
 
+        directory = os.path.expanduser("~/.mongobar_backups/localhost:27017/backup/d1")
+
         args[1].assert_called_with([
             "mongorestore",
             "-h", "localhost",
@@ -598,7 +600,7 @@ class TestMongobar(unittest.TestCase):
             "--db", "destination",
             "--nsInclude", "d1.*",
             "--drop",
-            "--dir", "/root/.mongobar_backups/localhost:27017/backup/d1",
+            "--dir", directory,
             "--gzip"
         ])
 

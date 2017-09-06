@@ -67,7 +67,7 @@ class TestConfig(unittest.TestCase):
 
     def test__root_property(self):
         m = Config()
-        self.assertEqual(m.root, "/root/.mongobar_backups")
+        self.assertEqual(m.root, os.path.expanduser(m.config.get("root")))
 
     # log_level
 
