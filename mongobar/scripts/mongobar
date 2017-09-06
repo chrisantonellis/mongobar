@@ -14,6 +14,8 @@ import tempfile
 import json
 
 import mongobar
+import mongobar.exceptions
+import mongobar.__version__
 
 
 class MongobarScript(object):
@@ -61,6 +63,12 @@ class MongobarScript(object):
         # logging
         self.logger = logging.getLogger("mongobar_script")
 
+        def myfunc(self, *args, **kwargs):
+            self.critical(*args, **kwargs)
+            return self.color_error(*args, **kwargs)
+
+        self.logger.critical = myfunc
+
         # level
         self.logger.setLevel(self.mb.config.log_level)
         self.mb.logger.setLevel(self.mb.config.log_level)
@@ -85,8 +93,9 @@ class MongobarScript(object):
                 self.mb.logger.addHandler(file_handler)
                 self.mb.config.logger.addHandler(file_handler)
 
-            except (FileNotFoundError, PermissionError) as e:
-                self.logger.error(e)
+            except Exception as e:
+                self.logger.critical(e)
+                self.parser.exit()
 
         # session
         session = self.read_session()
@@ -97,7 +106,8 @@ class MongobarScript(object):
         try:
             getattr(self, self.args.action.replace("-", "_"))()
         except mongobar.exceptions.BaseError as e:
-            self.parser.exit(self.color_error(str(e)))
+            self.logger.critical(str(e))
+            self.parser.exit()
 
 
     # parsers
@@ -112,7 +122,7 @@ class MongobarScript(object):
         # version
         parser.add_argument("-v", "--version",
             action="version",
-            version=mongobar.__version__,
+            version=mongobar.__version__.__version__,
             help="Show the version number"
         )
 
