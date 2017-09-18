@@ -6,9 +6,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## Unreleased
 
+## [ 0.0.7 ] 2017-09-18
+
+### Added
+
+* colored loglevels using Colorama for stream logging handler
+
 ### Changed
 
 * main parser name adjusted
+* setup.py description adjusted
+* MongobarScript.capture_multiline_input fixed
+* MongobarScript.capture_multiline_input exceptions captured correctly
+* logger.warn calls changed to logger.warning due to deprecation notice from unittest
+* fixed param name bug with calling restore
+* fixed bug with determining destination connection on restore
 
 ## [ 0.0.6 ] 2017-09-06
 

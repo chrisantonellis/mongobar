@@ -144,6 +144,10 @@ MOCKED_BACKUP_METADATA_3_DBS = {
 @mock.patch("mongobar.mongobar.pymongo.MongoClient", new_callable=MockedMongoClient)
 class TestMongobar(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        logging.getLogger("mongobar").addHandler(logging.NullHandler())
+
     # generate_backup_name
 
     @mock.patch("mongobar.mongobar.pkgutil.get_data", side_effect=[b"foo", b"bar"])
