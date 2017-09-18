@@ -1,5 +1,6 @@
 #!/Users/CHR15/.pyenv/shims/python
 
+import io
 import os
 import sys
 import argparse
@@ -7,6 +8,7 @@ import terminaltables
 import textwrap
 import dateutil.parser
 import colorama
+import pprint
 import subprocess
 import copy
 import logging
@@ -18,12 +20,29 @@ import mongobar.exceptions
 import mongobar.__version__
 
 
+class ColoredFormatter(logging.Formatter):
+
+    colors = {
+        "DEBUG": "CYAN",
+        "INFO": "WHITE",
+        "WARNING": "YELLOW",
+        "ERROR": "RED",
+        "CRITICAL": "RED"
+    }
+
+    def format(self, record):
+        color = getattr(colorama.Fore, self.colors[record.levelname])
+        return color + super().format(record) + colorama.Style.RESET_ALL
+
+
 class MongobarScript(object):
 
     default_config_file = "~/.mongobar_config.json"
+    default_session_file = "~/.mongobar_session.json"
 
-    log_format = "[%(asctime)s][%(levelname)-8s] %(message)s"
+    log_file_format = "[%(asctime)s][%(levelname)-8s] %(message)s"
     log_time_format = "%Y-%m-%d %H:%M:%S"
+    log_stream_format = "[%(levelname)-8s] %(message)s"
 
     def __init__(self):
 
@@ -71,6 +90,7 @@ class MongobarScript(object):
         # stream handler
         stream_handler = logging.StreamHandler(sys.stdout)
         stream_handler.setLevel(self.mb.config.log_level)
+        stream_handler.setFormatter(ColoredFormatter(self.log_stream_format))
 
         self.logger.addHandler(stream_handler)
         self.mb.logger.addHandler(stream_handler)
@@ -80,7 +100,7 @@ class MongobarScript(object):
         if self.mb.config.log_file is not None:
             try:
                 file_handler = logging.FileHandler(os.path.expanduser(self.mb.config.log_file))
-                file_handler.setFormatter(logging.Formatter(self.log_format))
+                file_handler.setFormatter(logging.formatter(self.log_file_format))
                 file_handler.setLevel(self.mb.config.log_level)
 
                 self.logger.addHandler(file_handler)
@@ -103,13 +123,14 @@ class MongobarScript(object):
             self.logger.critical(str(e))
             self.parser.exit()
 
-
     # parsers
 
     def create_parser_main(self):
 
+        description = "mongobar 🍫  {}\nMongoDB Backup and Restore manager"
+        description = description.format(mongobar.__version__.__version__)
         parser = argparse.ArgumentParser("mongobar",
-            description="mongobar 🍫\nMongoDB Backup and Restore manager",
+            description=description,
             formatter_class=argparse.RawTextHelpFormatter
         )
 
@@ -633,39 +654,50 @@ class MongobarScript(object):
     # input
 
     def capture_bool_input(self):
-        if input("Are you sure you want to continue? [y/n]: ")[:1].upper() != "Y":
+        if input("Are you sure you want to continue? [y/n]: ")[:1].lower() != "y":
             self.parser.exit()
 
         return True
 
     def capture_multiline_input(self):
-        with tempfile.NamedTemporaryFile(suffix=".tmp") as file_handle:
-            file_handle.flush()
-            subprocess.call([os.environ.get("EDITOR", "nano"), file_handle.name])
-            file_handle.seek(0)
-            return file_handle.read()
+
+        try:
+
+            with tempfile.NamedTemporaryFile() as file_handle:
+                subprocess.call([os.environ.get("EDITOR", "nano"), file_handle.name])
+                multiline = file_handle.read()
+                mutliline = multiline.decode("utf-8").rstrip("\n")
+                return multiline
+
+        except Exception as e:
+            self.logger.critical("Unable to open EDITOR: {}".format(e))
+            self.parser.exit()
 
     # session
 
     def read_session(self):
-        session_file = os.path.expanduser("~/.mongobar_session.json")
+        session_file = os.path.expanduser(self.default_session_file)
 
         try:
             with open(session_file) as file_handle:
-                session_data = json.loads(file_handle.read())
+                data = json.loads(file_handle.read())
+                self.logger.debug("Session file successfully read: {}".format(self.default_session_file))
+                self.logger.debug("Data: {}".format(pprint.pformat(data)))
 
         except (FileNotFoundError, PermissionError) as e:
             self.logger.debug(e)
             return None
 
-        return session_data
+        return data
 
     def write_session(self, data):
-        session_file = os.path.expanduser("~/.mongobar_session.json")
+        session_file = os.path.expanduser(self.default_session_file)
 
         try:
             with open(session_file, "w+") as file_handle:
                 file_handle.write(json.dumps(data))
+                self.logger.debug("Session file successfully written: {}".format(self.default_session_file))
+                self.logger.debug("Data: {}".format(pprint.pformat(data)))
 
         except (FileNotFoundError, PermissionError) as e:
             self.logger.error(e)
@@ -820,6 +852,7 @@ class MongobarScript(object):
 
         if self.args.message is None:
             self.args.message = self.capture_multiline_input()
+            print(self.args.message, type(self.args.message))
 
         if not self.args.force:
 
@@ -871,19 +904,14 @@ class MongobarScript(object):
             }
         })
 
-        destination_connection = self.args.destination_connection or self.args.connection or "destination_connection"
+        destination_connection = self.args.destination_connection or self.args.connection or "%%destination_connection%%"
 
         data = {}
-        if self.args.destination_host is not None:
-            data["destination_host"] = self.args.destination_host
-        if self.args.destination_port is not None:
-            data["destination_port"] = self.args.destination_port
-        if self.args.destination_username is not None:
-            data["destination_username"] = self.args.destination_username
-        if self.args.destination_password is not None:
-            data["destination_password"] = self.args.destination_password
-        if self.args.destination_authdb is not None:
-            data["destination_authdb"] = self.args.destination_authdb
+        data["host"] = self.args.destination_host or self.mb.config.connection.host
+        data["port"] = self.args.destination_port or self.mb.config.connection.port
+        data["username"] = self.args.destination_username or self.mb.config.connection.username
+        data["password"] = self.args.destination_password or self.mb.config.connection.password
+        data["authdb"] = self.args.destination_authdb or self.mb.config.connection.authdb
 
         self.mb.config.add({
             "connections": {
@@ -925,13 +953,11 @@ class MongobarScript(object):
 
             self.capture_bool_input()
 
-        # self.mb.restore(self.args.backup)
         self.mb.restore(
-            backup=self.args.backup,
+            name=self.args.backup,
             databases=self.args.databases or None,
             collections=self.args.collections or None,
             destination_databases=self.args.destination_databases or None,
-            source_connection=self.args.connection,
             destination_connection=self.args.destination_connection
         )
 
@@ -1146,9 +1172,9 @@ class MongobarScript(object):
             data = [("Name", "Connection", "Backups")]
             for host in hosts:
 
-                connection_name = self.mb.config.connections.get(socket=host[0]).name or ""
-                connection_name = self.format_connection_name(connection_name)
-                row = [host[0], connection_name, host[1]]
+                name = self.mb.config.connections.get(socket=host[0]).name or ""
+                name = self.format_connection_name(name)
+                row = [host[0], name, host[1]]
 
                 # limit
                 if self.args.limit and i == self.args.limit:
@@ -1164,35 +1190,29 @@ class MongobarScript(object):
 
     def config(self):
 
-        config = self.mb.config.config
-
-        misc_data = []
-        for key, value in config.items():
+        rows = []
+        for key, val in self.mb.config.config.items():
             if key != "connections":
-                misc_data.append([key, value])
+                rows.append([key, val])
 
-        misc_table = terminaltables.SingleTable(misc_data)
-        misc_table.inner_heading_row_border = False
+        table = terminaltables.SingleTable(rows)
+        table.inner_heading_row_border = False
 
         print()
-        print(misc_table.table)
+        print(table.table)
         print()
         print("Connections:")
         print()
 
-        for name, host in config["connections"].items():
+        for name, host in self.mb.config.config["connections"].items():
+            rows = []
+            for key, val in host.items():
+                rows.append([key.ljust(9), val])
 
-            connection_data = []
-            for key, value in host.items():
-
-                connection_data.append([key.ljust(9), value])
-
-            connection_name = self.format_connection_name(name)
-            title = " {} ".format(connection_name)
-
-            connection_table = terminaltables.SingleTable(connection_data, title)
-            connection_table.inner_heading_row_border = False
-            print(connection_table.table)
+            title = " {} ".format(self.format_connection_name(name))
+            table = terminaltables.SingleTable(rows, title)
+            table.inner_heading_row_border = False
+            print(table.table)
 
         print()
 

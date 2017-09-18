@@ -191,7 +191,7 @@ class Mongobar(object):
             if db not in all_databases:
                 msg = "Database '{}' does not exist"
                 msg = msg.format(db)
-                self.logger.warn(msg)
+                self.logger.warning(msg)
 
             command = ["mongodump"]
             command += ["-h", conn.host]
@@ -229,7 +229,7 @@ class Mongobar(object):
                         msg = "Collection '{}' does not exist in database '{}'"
 
                         msg = msg.format(col, db)
-                        self.logger.warn(msg)
+                        self.logger.warning(msg)
 
                     col_command = copy.copy(command)
                     col_command += ["--collection", col]

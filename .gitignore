@@ -1,8 +1,9 @@
-.DS_Store
 __pycache__/
-*.py[cod]
 htmlcov/
-.coverage
 dist/
+
+.DS_Store
+*.py[cod]
+.coverage
 *.egg-info/
 .notes
