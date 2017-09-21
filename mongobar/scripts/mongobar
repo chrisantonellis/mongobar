@@ -57,7 +57,7 @@ class MongobarScript(object):
         self.create_parser_restore(subparsers)
         self.create_parser_remove(subparsers)
         self.create_parser_backups(subparsers)
-        self.create_parser_hosts(subparsers)
+        self.create_parser_dirs(subparsers)
         self.create_parser_meta(subparsers)
         self.create_parser_server(subparsers)
         self.create_parser_config(subparsers)
@@ -525,10 +525,10 @@ class MongobarScript(object):
 
         return parser
 
-    def create_parser_hosts(self, parent_parser):
-        parser = parent_parser.add_parser("hosts",
-            help="List host directories",
-            description="List host directories"
+    def create_parser_dirs(self, parent_parser):
+        parser = parent_parser.add_parser("dirs",
+            help="List connection directories",
+            description="List connection directories"
         )
 
         # output group
@@ -787,7 +787,7 @@ class MongobarScript(object):
 
     def format_connection_name(self, name):
         name = "[{}]".format(name)
-        name = colorama.Fore.MAGENTA + name + colorama.Style.RESET_ALL
+        name = colorama.Fore.YELLOW + name + colorama.Style.RESET_ALL
         return name
 
     def color_warning(self, string):
@@ -982,17 +982,21 @@ class MongobarScript(object):
 
         # ~~~
 
+        backup_name = self.args.backup
+
         backup_path = os.path.join(
-            self.mb.config.connection.directory,
+            self.mb.config.connection_dir,
             self.args.backup
         )
 
         # check if backup directory exists
         if not os.path.exists(backup_path):
-            # TODO: custom exception
-            raise Exception("backup not found")
-
-        backup_name = self.args.backup
+            msg = "Backup '{}' not found in connection directory '{}'".format(
+                backup_name,
+                self.mb.config.connection_dir
+            )
+            self.logger.critical(msg)
+            self.parser.exit()
 
         if not self.args.force:
             print()
@@ -1156,25 +1160,25 @@ class MongobarScript(object):
             print(table.table)
             print()
 
-    def hosts(self):
+    def dirs(self):
 
-        hosts = self.mb.get_hosts(count=True)
+        dirs = self.mb.get_connection_directories(count=True)
 
         print()
 
-        if len(hosts) == 0:
-            data = [["No host directories have been created"]]
+        if len(dirs) == 0:
+            data = [["No connection directories have been created"]]
             table = terminaltables.SingleTable(data)
             print(table.table)
             print()
 
         else:
             data = [("Name", "Connection", "Backups")]
-            for host in hosts:
+            for dir_ in dirs:
 
-                name = self.mb.config.connections.get(socket=host[0]).name or ""
+                name = self.mb.config.connections.get(socket=dir_[0]).name or ""
                 name = self.format_connection_name(name)
-                row = [host[0], name, host[1]]
+                row = [dir_[0], name, dir_[1]]
 
                 # limit
                 if self.args.limit and i == self.args.limit:
@@ -1182,7 +1186,7 @@ class MongobarScript(object):
 
                 data.append(row)
 
-            table = terminaltables.SingleTable(data, " Host Directories ")
+            table = terminaltables.SingleTable(data, " Connection Directories ")
             table.justify_columns[2] = "right"
 
             print(table.table)

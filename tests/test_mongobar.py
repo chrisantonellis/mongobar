@@ -668,26 +668,26 @@ class TestMongobar(unittest.TestCase):
         with self.assertRaises(mongobar.exceptions.CommandError):
             m.restore("backup", collections=["c1"])
 
-    # list hosts
+    # get connection directories
 
     @mock.patch("mongobar.mongobar.os.path.exists", return_value=False)
     @mock.patch("mongobar.mongobar.get_directories", return_value=["d1", "d2"])
     def test__get_hosts__directory_does_not_exist(self, *args):
         m = mongobar.Mongobar()
-        self.assertEqual(m.get_hosts(), [])
+        self.assertEqual(m.get_connection_directories(), [])
 
     @mock.patch("mongobar.mongobar.os.path.exists", return_value=True)
     @mock.patch("mongobar.mongobar.get_directories", return_value=["d1", "d2"])
-    def test__get_hosts__return_names(self, *args):
+    def test__get_connection_directories__return_names(self, *args):
         m = mongobar.Mongobar()
-        m.get_hosts()
+        m.get_connection_directories()
         args[0].assert_called_with(m.config.root)
 
     @mock.patch("mongobar.mongobar.os.path.exists", return_value=True)
     @mock.patch("mongobar.mongobar.get_directories", side_effect=[["host"],["db"]])
-    def test__get_hosts__return_names_and_counts(self, *args):
+    def test__get_connection_directories__return_names_and_counts(self, *args):
         m = mongobar.Mongobar()
-        m.get_hosts(count=True)
+        m.get_connection_directories(count=True)
 
         self.assertEqual(
             args[0].call_args_list,

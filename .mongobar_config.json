@@ -1,4 +1,5 @@
 {
+  "log_level": "DEBUG",
   "connections": {
     "remote": {
       "host": "remote",
