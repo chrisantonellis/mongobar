@@ -215,6 +215,7 @@ class Mongobar(object):
 
                 try:
                     subprocess.check_output(command)
+                    self.logger.debug("Command called: {}".format(" ".join(command)))
                 except subprocess.CalledProcessError as e:
                     raise CommandError(e)
 
@@ -225,9 +226,7 @@ class Mongobar(object):
                 for col in collections:
 
                     if col not in all_collections:
-
                         msg = "Collection '{}' does not exist in database '{}'"
-
                         msg = msg.format(col, db)
                         self.logger.warning(msg)
 
@@ -237,6 +236,7 @@ class Mongobar(object):
 
                     try:
                         subprocess.check_output(col_command)
+                        self.logger.debug("Command called: {}".format(" ".join(col_command)))
                     except subprocess.CalledProcessError as e:
                         raise CommandError(e)
 
@@ -330,22 +330,22 @@ class Mongobar(object):
                     except subprocess.CalledProcessError as e:
                         raise CommandError(e)
 
-    def get_hosts(self, count=False):
+    def get_connection_directories(self, count=False):
         if not os.path.exists(self.config.root):
             return []
 
-        hosts = []
-        for host in get_directories(self.config.root):
+        directories = []
+        for directory in get_directories(self.config.root):
 
             if count:
-                host_directory = os.path.join(self.config.root, host)
-                host_backup_count = len(get_directories(host_directory))
-                hosts.append((host, host_backup_count))
+                path = os.path.join(self.config.root, directory)
+                backup_count = len(get_directories(path))
+                directories.append((directory, backup_count))
 
             else:
-                hosts.append(host)
+                directories.append(directory)
 
-        return hosts
+        return directories
 
     def get_backups(self):
         path = self.config.connection_dir

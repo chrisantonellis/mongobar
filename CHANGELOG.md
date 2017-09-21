@@ -4,7 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## Unreleased
+## [ 0.0.8 ] 2017-09-21
+
+### Added
+
+* clean parser exit on 'backup not found'
+
+### Changed
+
+* fixed bug with removing a backup
+* renamed 'hosts' action to 'dirs' to match 'connection directory' naming
+* renamed get_hosts method to get_connection_directories in Mongobar class
+* changed formatted connection name color from MAGENTA to YELLOW
 
 ## [ 0.0.7 ] 2017-09-18
 
