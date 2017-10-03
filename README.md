@@ -57,7 +57,7 @@ mongobar will try to load a config file from `~/.mongobar_config.json` by defaul
 ## Connections
 mongobar uses the `connection` action to view and set the **current connection**. This attribute is used by actions `backup`, `restore`, `remove`, `backups`, `hosts`, and `meta`. Connections are defined in the configuration file and can be viewed by running the `config` action.
 
-## Examples
+<!-- ## Examples
 
 #### `mongobar backups`
 View backups
@@ -77,4 +77,4 @@ View configuration
 
 #### `mongobar server`
 View server metadata
-![](assets/server.png)
+![](assets/server.png) -->

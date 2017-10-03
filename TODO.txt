@@ -2,3 +2,5 @@
 * better management of manually defined destination connections, should
   raise exception if not all required attributes are defined, possibly from
   config or connections class
+
+* update example images
