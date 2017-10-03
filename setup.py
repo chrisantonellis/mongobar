@@ -39,7 +39,6 @@ setuptools.setup(
     install_requires=[
         "pymongo",
         "colorama",
-        "argcomplete",
         "terminaltables",
         "python-dateutil"
     ],

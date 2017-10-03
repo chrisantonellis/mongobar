@@ -2,10 +2,10 @@
   "log_level": "DEBUG",
   "connections": {
     "remote": {
-      "host": "remote",
+      "host": "mongobar_remote",
       "port": 27017,
-      "username": "user",
-      "password": "pass",
+      "username": "backup_restore_user",
+      "password": "password",
       "authdb": "admin"
     }
   }

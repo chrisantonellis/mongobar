@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [ 0.0.9 ] 2017-10-03
+
+### Added
+* TODO.txt
+* get() method to Connection class
+
+### Changed
+
+* removed 'argcomplete' from pip requirements
+* fixed bug with specifying destination connection
+
 ## [ 0.0.8 ] 2017-09-21
 
 ### Added

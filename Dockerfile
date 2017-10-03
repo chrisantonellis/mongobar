@@ -24,7 +24,7 @@ ADD ./.mongobar_config.json /root/.mongobar_config.json
 
 # install mongobar
 WORKDIR /mongobar
-RUN w
+RUN pip install -e .[tests]
 
 # add tests
 ADD ./tests /tests

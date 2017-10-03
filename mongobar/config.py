@@ -80,4 +80,3 @@ class Config(object):
         self.connections.connections = {}
         for name, attributes in data["connections"].items():
             self.connections.add(name, attributes)
-
