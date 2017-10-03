@@ -44,6 +44,24 @@ class Connection(object):
     def auth(self):
         return bool(self.username and self.password)
 
+    def get(self):
+
+        self.validate()
+
+        data = {
+            "host": self.host,
+            "port": self.port
+        }
+
+        if self.username is not None:
+            data["username"] = self.username
+            data["password"] = self.password
+
+        if self.authdb is not None:
+            data["authdb"] = self.authdb
+
+        return data
+
 
 class Connections(object):
 

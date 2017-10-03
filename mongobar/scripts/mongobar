@@ -889,6 +889,8 @@ class MongobarScript(object):
 
         # handle script args
 
+        # source connection
+
         if self.args.connection:
             self.mb.connection = self.args.connection
 
@@ -904,29 +906,52 @@ class MongobarScript(object):
             }
         })
 
-        destination_connection = self.args.destination_connection or self.args.connection or "%%destination_connection%%"
+        # destination connection
+        # TODO: this is a mess because of only being able to get a connection
+        # as a class and not a dict, a dict would allow for reshaping and
+        # reinserting the data without jumping through so many h00ps
 
-        data = {}
-        data["host"] = self.args.destination_host or self.mb.config.connection.host
-        data["port"] = self.args.destination_port or self.mb.config.connection.port
-        data["username"] = self.args.destination_username or self.mb.config.connection.username
-        data["password"] = self.args.destination_password or self.mb.config.connection.password
-        data["authdb"] = self.args.destination_authdb or self.mb.config.connection.authdb
+        if self.args.destination_connection is not None:
+            destconn_name = self.args.destination_connection
+            destconn = self.mb.config.connections.get(destconn_name).get()
+
+        else:
+            destconn_name = "%%destination_connection%%"
+            desctonn = {}
+
+        if self.args.destination_host is not None:
+            destconn["host"] = self.args.destination_host
+        elif "host" not in destconn:
+            destconn["host"] = self.mb.config.connection.host
+
+        if self.args.destination_port is not None:
+            destconn["port"] = self.args.destination_port
+        elif "port" not in destconn:
+            destconn["port"] = self.mb.config.connection.port
+
+        if self.args.destination_host is not None:
+            destconn["host"] = self.args.destination_host
+
+        if self.args.destination_host is not None:
+            destconn["host"] = self.args.destination_host
+
+        if self.args.destination_host is not None:
+            destconn["host"] = self.args.destination_host
 
         self.mb.config.add({
             "connections": {
-                destination_connection: data
+                destconn_name: destconn
             }
         })
 
-        # restore
+        # restore ~~~
 
         metadata = self.mb.read_metadata(self.args.backup)
 
         if not self.args.force:
 
             print()
-            print(self.color_warning("About to restore the following backup:"))
+            print(self.color_warning("About to restore the following backups:"))
             print()
             print(self.format_metadata_title_table(self.args.backup, metadata))
             print(self.format_metadata_metrics_table(metadata, self.args.databases, self.args.collections))
@@ -935,7 +960,7 @@ class MongobarScript(object):
             print()
 
             data = [["Host", "Port"]]
-            connection = self.mb.config.connections.get(destination_connection)
+            connection = self.mb.config.connections.get(destconn_name)
             if not self.args.destination_databases:
                 data.append([connection.host, connection.port])
 
@@ -958,7 +983,7 @@ class MongobarScript(object):
             databases=self.args.databases or None,
             collections=self.args.collections or None,
             destination_databases=self.args.destination_databases or None,
-            destination_connection=self.args.destination_connection
+            destination_connection=destconn_name
         )
 
         print(self.color_success("Backup '{}' restored!".format(self.args.backup)))
