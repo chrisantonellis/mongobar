@@ -917,7 +917,7 @@ class MongobarScript(object):
 
         else:
             destconn_name = "%%destination_connection%%"
-            desctonn = {}
+            destconn = {}
 
         if self.args.destination_host is not None:
             destconn["host"] = self.args.destination_host
