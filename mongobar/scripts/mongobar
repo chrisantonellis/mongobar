@@ -929,14 +929,20 @@ class MongobarScript(object):
         elif "port" not in destconn:
             destconn["port"] = self.mb.config.connection.port
 
-        if self.args.destination_host is not None:
-            destconn["host"] = self.args.destination_host
+        if self.args.destination_username is not None:
+            destconn["username"] = self.args.destination_username
+        elif "username" not in destconn:
+            destconn["username"] = self.mb.config.connection.username
 
-        if self.args.destination_host is not None:
-            destconn["host"] = self.args.destination_host
+        if self.args.destination_password is not None:
+            destconn["password"] = self.args.destination_password
+        elif "password" not in destconn:
+            destconn["password"] = self.mb.config.connection.password
 
-        if self.args.destination_host is not None:
-            destconn["host"] = self.args.destination_host
+        if self.args.destination_authdb is not None:
+            destconn["authdb"] = self.args.destination_authdb
+        elif "authdb" not in destconn:
+            destconn["authdb"] = self.mb.config.connection.authdb
 
         self.mb.config.add({
             "connections": {

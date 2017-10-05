@@ -284,8 +284,8 @@ class Mongobar(object):
 
             # command, host and port
             command = ["mongorestore"]
-            command += ["-h", dest_conn.host]
-            command += ["-p", str(dest_conn.port)]
+            command += ["--host", dest_conn.host]
+            command += ["--port", str(dest_conn.port)]
 
             # authentication
             if dest_conn.auth:
