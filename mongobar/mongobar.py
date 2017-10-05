@@ -245,8 +245,6 @@ class Mongobar(object):
     def restore(self, name, databases=None, collections=None, \
             destination_databases=None, destination_connection=None):
 
-        print(self.config.connection_dir, name)
-
         # check if backup directory exists
         backup_dir = os.path.join(self.config.connection_dir, name)
         if not os.path.exists(backup_dir):
