@@ -315,8 +315,8 @@ class TestMongobar(unittest.TestCase):
         self.assertIn(
             mock.call([
                 "mongodump",
-                "-h", "localhost",
-                "-p", "27017",
+                "--host", "localhost",
+                "--port", "27017",
                 "--db", "d1",
                 "--out", directory,
                 "--quiet",
@@ -394,8 +394,8 @@ class TestMongobar(unittest.TestCase):
         self.assertIn(
             mock.call([
                 "mongodump",
-                "-h", "localhost",
-                "-p", "27017",
+                "--host", "localhost",
+                "--port", "27017",
                 "-u", "user",
                 "-p", "pass",
                 "--authenticationDatabase", "authdb",
@@ -422,8 +422,8 @@ class TestMongobar(unittest.TestCase):
         self.assertIn(
             mock.call([
                 "mongodump",
-                "-h", "localhost",
-                "-p", "27017",
+                "--host", "localhost",
+                "--port", "27017",
                 "--db", "foobar",
                 "--out", os.path.join(m.config.connection_dir, "foo-bar"),
                 "--quiet",
@@ -459,8 +459,8 @@ class TestMongobar(unittest.TestCase):
         self.assertIn(
             mock.call([
                 "mongodump",
-                "-h", "localhost",
-                "-p", "27017",
+                "--host", "localhost",
+                "--port", "27017",
                 "--db", "d1",
                 "--collection", "c1",
                 "--out", os.path.join(m.config.connection_dir, "foo-bar"),
@@ -485,8 +485,8 @@ class TestMongobar(unittest.TestCase):
         self.assertIn(
             mock.call([
                 "mongodump",
-                "-h", "localhost",
-                "-p", "27017",
+                "--host", "localhost",
+                "--port", "27017",
                 "--db", "d1",
                 "--collection", "foobar",
                 "--out", os.path.join(m.config.connection_dir, "foo-bar"),
@@ -533,8 +533,8 @@ class TestMongobar(unittest.TestCase):
         self.assertIn(
             mock.call([
                 "mongorestore",
-                "-h", "localhost",
-                "-p", "27017",
+                "--host", "localhost",
+                "--port", "27017",
                 "--nsInclude", "d1.*",
                 "--drop",
                 "--dir", directory,
@@ -594,8 +594,8 @@ class TestMongobar(unittest.TestCase):
         self.assertIn(
             mock.call([
                 "mongorestore",
-                "-h", "localhost",
-                "-p", "27017",
+                "--host", "localhost",
+                "--port", "27017",
                 "-u", "user",
                 "-p", "pass",
                 "--authenticationDatabase", "authdb",
@@ -619,8 +619,8 @@ class TestMongobar(unittest.TestCase):
 
         args[1].assert_called_with([
             "mongorestore",
-            "-h", "localhost",
-            "-p", "27017",
+            "--host", "localhost",
+            "--port", "27017",
             "--db", "destination",
             "--nsInclude", "d1.*",
             "--drop",
@@ -648,8 +648,8 @@ class TestMongobar(unittest.TestCase):
         self.assertIn(
             mock.call([
                 "mongorestore",
-                "-h", "localhost",
-                "-p", "27017",
+                "--host", "localhost",
+                "--port", "27017",
                 "--nsInclude", "d1.c1",
                 "--drop",
                 "--dir", os.path.join(m.config.connection_dir, "backup"),

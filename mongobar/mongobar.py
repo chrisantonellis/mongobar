@@ -194,8 +194,8 @@ class Mongobar(object):
                 self.logger.warning(msg)
 
             command = ["mongodump"]
-            command += ["-h", conn.host]
-            command += ["-p", str(conn.port)]
+            command += ["--host", conn.host]
+            command += ["--port", str(conn.port)]
 
             if conn.auth:
                 command += ["-u", conn.username]
