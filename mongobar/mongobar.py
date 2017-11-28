@@ -313,6 +313,7 @@ class Mongobar(object):
                 command += command_out
 
                 try:
+                    self.logger.debug("Command called: {}".format(" ".join(command)))
                     subprocess.check_output(command)
                 except subprocess.CalledProcessError as e:
                     raise CommandError(e)
@@ -326,6 +327,7 @@ class Mongobar(object):
                     collection_command += command_out
 
                     try:
+                        self.logger.debug("Command called: {}".format(" ".join(collection_command)))
                         subprocess.check_output(collection_command)
                     except subprocess.CalledProcessError as e:
                         raise CommandError(e)

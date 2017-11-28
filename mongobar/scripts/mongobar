@@ -270,6 +270,7 @@ class MongobarScript(object):
         # port
         target_group.add_argument("--port",
             dest="port",
+            type=int,
             metavar="PORT",
             help="The port to target"
         )
@@ -358,6 +359,7 @@ class MongobarScript(object):
         # source port
         source_target_group.add_argument("--port",
             dest="port",
+            type=int,
             metavar="PORT",
             help="The source port to target"
         )
@@ -467,6 +469,7 @@ class MongobarScript(object):
         # source port
         target_group.add_argument("--port",
             dest="port",
+            type=int,
             metavar="PORT",
             help="The port to target"
         )
@@ -519,6 +522,7 @@ class MongobarScript(object):
         # source port
         target_group.add_argument("--port",
             dest="port",
+            type=int,
             metavar="PORT",
             help="The port to target"
         )
@@ -579,6 +583,7 @@ class MongobarScript(object):
         # port
         target_group.add_argument("--port",
             dest="port",
+            type=int,
             metavar="PORT",
             help="The port to target"
         )
@@ -613,6 +618,7 @@ class MongobarScript(object):
         # source port
         target_group.add_argument("--port",
             dest="port",
+            type=int,
             metavar="PORT",
             help="The port to target"
         )
