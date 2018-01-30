@@ -306,6 +306,7 @@ class Mongobar(object):
                 source_dir = os.path.join(source_dir, database)
             command_out += ["--dir", source_dir]
             command_out += ["--gzip"]
+            command_out += ["--noIndexRestore"]
 
             if not collections:
 
