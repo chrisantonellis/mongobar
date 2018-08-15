@@ -121,7 +121,7 @@ class MongobarScript(object):
             getattr(self, self.args.action.replace("-", "_"))()
         except mongobar.exceptions.BaseError as e:
             self.logger.critical(str(e))
-            self.parser.exit()
+            self.parser.exit(1)
 
     # parsers
 
